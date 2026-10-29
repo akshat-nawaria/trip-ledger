@@ -28,3 +28,8 @@ Every value marked *configurable* lives in `application.yml` (and in the core `B
 | A22 | Office event sent twice | Latest TRIP_END (login) / earliest TRIP_START (logout) is used; ones with a timestamp win | — |
 | A23 | Missing office event | The planned office is anchored at the window end (login) or window start (logout) | — |
 | A19 | Teleport re-anchor | 3 consistent suspicious pings in a row replace the accepted pings they contradict, but only if those are fewer | Yes |
+| A24 | Route cache grid | Both ends of a gap are snapped to a 0.0002° grid (~22 m) and the provider is asked about the **cell centres**. The answer then depends only on the cells, so trip order never changes a bill. Cost: at most ~31 m per routed gap (two half-diagonals) | Yes |
+| A25 | Cache vs. breaker order | Cache sits in front of the circuit breaker, so known routes are still answered during an outage. Failed calls are never cached | — |
+| A26 | Circuit breaker | Last 10 calls, at least 5, opens at 50 % failures, stays open 30 s, then 3 trial calls | Yes |
+| A27 | No request batching | Rules 0–2 settle most gaps before any lookup, so a trip needs only ~2 routes. Batching would force routing every gap up front, including ones the rules never route | — |
+| A28 | Provider contract | A provider returns a real distance or throws `RoutingException`. Any other exception is a bug and fails loudly instead of quietly degrading a bill | — |

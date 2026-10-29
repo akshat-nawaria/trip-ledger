@@ -9,7 +9,7 @@ MoveInSync Backend Case Study 2026 · Case Study 1 · Advanced Track.
 Rebuilds a trustworthy, explainable billable distance for every cab trip from unreliable GPS data.
 Every kilometre carries the rule that produced it, the same input always gives the same answer, and paid routing calls are kept to a minimum.
 
-> Status: **Segments S0–S3 complete** — the full distance engine works: cleaning, anchor points, rules 0–6, and the case-study underpass trip comes out at **30.61 km** (naive sum 18.4 km) with **2 routing calls**. 123 unit tests. See [docs/ROADMAP.md](docs/ROADMAP.md).
+> Status: **Segments S0–S4 complete** — the distance engine works end to end (cleaning, anchors, rules 0–6; underpass trip **18.4 → 30.61 km** with **2 routing calls**), and the routing layer is in: grid-snapped Caffeine cache, Resilience4j circuit breaker and a mock provider with an off switch. 20 trips over the same gap cost **1** provider call. 157 tests. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Quick start
 
@@ -36,7 +36,7 @@ From segment S8 onwards, `docker compose up` also builds and starts the app itse
 
 ```
 core/   plain Java: the distance engine (no Spring, no database)
-app/    Spring Boot: REST API, security, persistence, jobs
+app/    Spring Boot: routing layer (cache, breaker, mock provider); REST API, security, persistence, jobs to come
 docs/   requirements tracker, assumptions, stack choice, roadmap, design note
 ```
 
@@ -49,12 +49,19 @@ docs/   requirements tracker, assumptions, stack choice, roadmap, design note
 | Anchor points | `EmployeeAnchorResolver` (actual → profile home → planned), `NoShowAnchorResolver` (behind a flag), `OfficeAnchorResolver` (400 m rule) | One test class per resolver |
 | Segment rules 0–6 | `ImpossibleSpeedRule`, `ShortGapRule`, `ParkedRule`, `RoutingUnavailableRule`, `RouteTooLongRule`, `RouteTooFastRule`, `RoutedRule` in `RuleSet.v1()` | `RuleSetTest` (every boundary: 69/70 s, 4.9/5.1 km/h, 100 km) |
 | The engine | `DistanceEngine.compute(evidence, routeLookup)` → `TripDistance` with a label on every segment | `DistanceEngineTest` (underpass 18.4 → 30.61 km, outage → DEGRADED, shuffled input → identical result) |
+| Routing layer | `RoutingGateway` (snap → `RouteCache` → `CircuitBreakingProvider` → `MockRoutingProvider`), per-trip `RoutingUsage`, settings in `application.yml` | `RouteKeyTest`, `RouteCacheTest`, `CircuitBreakingProviderTest`, `RoutingGatewayTest`, `RoutingWithEngineTest` (outage → DEGRADED, recovery → normal, 20 trips → 1 call) |
 | GPS cleaning | `InvalidCoordinateFilter` → `DuplicateFilter` → `TimeOrderFilter` → `AccuracyFilter` → `TeleportFilter`, run by `CleaningPipeline` | One test class per filter + `CleaningPipelineTest` (shuffled 1,000× → same result) |
 
 Run only the engine tests (fast, no database needed):
 
 ```bash
 mvn -pl core test
+```
+
+See the routing setup of a running app (provider, breaker state, cached routes):
+
+```bash
+curl http://localhost:8080/actuator/info
 ```
 
 ## Documents

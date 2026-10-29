@@ -33,8 +33,8 @@ flowchart TB
     ENG["DistanceEngine<br/>core module · pure Java · rule set v1<br/>clean → anchors → segment rules → sum mm"]
 
     subgraph Routing
-        RCH["Routing chain<br/>breaker → L1 Caffeine → L2 Redis"]
-        PRV["RoutingProvider<br/>mock · Google · OSRM"]
+        RCH["RoutingGateway<br/>snap → Caffeine cache → circuit breaker"]
+        PRV["RoutingProvider<br/>mock now · OSRM / Google later"]
     end
 
     DB[("PostgreSQL<br/>evidence, runs, segments,<br/>pinned routes, adjustments, jobs")]
@@ -68,7 +68,6 @@ flowchart TB
 |---|---|---|
 | `core` | Domain, cleaning filters, anchor resolvers, segment rules, engine | **No** (a test enforces this) |
 | `app` | REST controllers, services, JPA repositories, security, routing adapters, jobs, metrics | Yes |
-| `mock-router` *(S4)* | Fake routing provider with a fault switch for demos and tests | Yes |
 | `bench` *(S9)* | Seeded data generator and 10,000-trip benchmark runner | No |
 
 ### 3.2 Packages
@@ -85,7 +84,7 @@ flowchart TB
 | `app.api` | Controllers, request/response DTOs, `@RestControllerAdvice` | S5, S6 |
 | `app.service` | `EvidenceService`, `DistanceService`, `AdjustmentService` | S5, S7 |
 | `app.persistence` | JPA entities + Spring Data repositories, Flyway migrations | S5 |
-| `app.routing` | `RoutingProvider`, `CachingRouteLookup`, `CircuitBreakingProvider`, HTTP client | S4 |
+| `app.routing` | `RoutingProvider`, `MockRoutingProvider` (fault switch), `RouteKey` (grid snap), `RouteCache` (Caffeine), `CircuitBreakingProvider` (Resilience4j), `RoutingGateway` + `TripRouting` (per-trip usage), `RoutingConfig` | S4 |
 | `app.jobs` | `JobQueue`, `ComputeWorker`, `RecomputeScheduler` | S7 |
 | `app.security` | JWT config, roles, tenant context | S6 |
 | `app.observability` | Metrics, log masking | S8 |
@@ -98,7 +97,7 @@ flowchart TB
 | Inheritance | `AbstractAerialRule` shared by the short-gap, parked and impossible-speed rules |
 | Polymorphism | `PingFilter`, `AnchorResolver`, `SegmentRule`, `RoutingProvider` interfaces |
 | Chain of Responsibility | `RuleSet` — rules are tried in order, first match wins |
-| Decorator | `CircuitBreakingProvider` → `CachingRouteLookup` → real provider |
+| Decorator | `RoutingGateway` → `RouteCache` → `CircuitBreakingProvider` → real provider |
 | Strategy | Routing provider chosen by configuration |
 | Ports and adapters | `RouteLookup` is defined in `core`, implemented in `app` |
 
@@ -337,20 +336,28 @@ Errors use RFC 7807 `application/problem+json`: `{ "type", "title", "status", "c
 
 ## 7. Routing cost control
 
-| Technique | Effect |
-|---|---|
-| Rules 0–2 decided before any call | Short gaps, parked time and impossible jumps cost nothing |
-| Cache key = (snapped start cell, snapped end cell, provider, profile) | Daily commute routes repeat, so the same gap is paid for once |
-| Geometry guard: reuse only if actual straight line is within 10 % of the cached one | Bounds the error of a cache hit |
-| Single-flight | Concurrent misses for one key share one call |
-| Batch window (50 ms or 25 requests) + token bucket (50 QPS) | Respects provider limits, no bursts |
-| `routingCalls` stored on every run | Benchmark prints calls before vs after caching |
+```
+engine asks for a gap ─▶ TripRouting (counts) ─▶ snap both ends to ~22 m cells ─▶ Caffeine cache ─┬─ hit: free
+                                                                                                  └─ miss ─▶ circuit breaker ─▶ provider
+```
+
+| Technique | Status | Effect |
+|---|---|---|
+| Rules 0–2 decided before any call | Built (S3) | Short gaps, parked time and impossible jumps cost nothing |
+| Cache key = (start cell, end cell), 0.0002° grid | Built (S4) | Daily commute routes repeat, so the same gap is paid for once |
+| Provider is asked about the **cell centres**, not the raw points | Built (S4) | The answer depends only on the key, so trip order never changes a bill. Error ≤ ~31 m per routed gap |
+| Single-flight | Built (S4) | Caffeine `get(key, loader)` is atomic per key: concurrent misses share one call |
+| Cache in front of the breaker | Built (S4) | During an outage every known route is still answered; only new gaps degrade |
+| Failures never cached | Built (S4) | The next trip retries instead of inheriting an outage |
+| Per-trip `RoutingUsage` (requests, cache hits, provider calls, unavailable) | Built (S4), stored per run in S5 | Calls before vs after caching, per trip |
+| Batching | Dropped (A27) | Only ~2 routed gaps per trip; batching would route gaps the rules never need |
+| Rate limiting (token bucket) | Later, with a real provider | The mock has no quota |
 
 | Cache layer | Store | Eviction | Max staleness |
 |---|---|---|---|
-| L1 | Caffeine, in-process | W-TinyLFU, 200 k entries | 30 days |
-| L2 *(optional)* | Redis | LRU + 30-day TTL | 30 days |
-| L3 | `route_evidence` table | Never while billable | Never stale — pinned per run |
+| L1 | Caffeine, in-process | W-TinyLFU, 100 k entries | 7 days |
+| L2 *(only if several app instances)* | Redis | LRU + TTL | not built |
+| L3 | `route_evidence` table | Never while billable | Never stale — pinned per run (S7) |
 
 ---
 
@@ -409,14 +416,14 @@ sequenceDiagram
 | What fails | What the user sees | How the system recovers |
 |---|---|---|
 | Routing provider down | Trip `DEGRADED`, provisional km (× 1.4) | Breaker probes every 30 s; on close, recompute queue drains; delta if billed |
-| Provider slow (> 2 s) | Same as above, for slow segments only | Slow-call rate opens the breaker |
+| Provider slow (> 2 s) | Same as above, for slow segments only | A real provider's HTTP timeout throws `RoutingException`, which the breaker counts as a failure |
 | Provider rate limit (429) | Results a little later | Token bucket backs off, honours `Retry-After` |
 | Worker crashes mid-compute | Nothing; trip stays `RECEIVED` a little longer | 60 s lease expires; another worker reruns it idempotently |
 | Duplicate upload | Nothing | Idempotency key + unique ping index |
 | Out-of-order pings | Nothing | Sorted at compute time; arrival order is irrelevant |
 | Late pings after invoice closed | Adjustment line, e.g. +1.8 km, on next invoice | New run with the **same** rule version; signed delta; old invoice untouched |
 | Two recomputes at once | Nothing | Unique run key + optimistic lock: one wins, the other is a no-op |
-| Redis down | Slightly more provider calls | L1 cache + pinned evidence still serve |
+| Cache lost (app restart) | Slightly more provider calls for a while | Cache refills on demand; pinned evidence (S7) still replays billed trips |
 | PostgreSQL down | `503` with `Retry-After` | Devices retry with the same idempotency key |
 | Bad config deployed | Nothing for existing trips | Rule sets are versioned and immutable; config hash stored per run |
 | Device clock skew | Pings outside the window ignored | Accept only window ± 10 min |
@@ -477,8 +484,8 @@ For n ≈ 1,500 pings a trip holds about 40 KB in primitive form. Trips are inde
 |---|---|---|---|
 | Provider outage | Availability (provisional km, `DEGRADED`) | Immediate exactness | Billing keeps flowing; recompute + delta restores truth |
 | Billing writes | Strong consistency per trip | Some write throughput | Money cannot be counted twice or lost |
-| Batch window | Lower cost | ≤ 50 ms latency | Distance is computed after the trip ends |
-| Cache with geometry guard | Large call savings | Tiny bounded error per hit | Answer is pinned, so it never drifts between runs |
+| No request batching | Fewer moving parts | A few extra round trips | Rules settle most gaps first, so a trip routes only ~2 gaps |
+| Snapped cache (cell centres) | Large call savings | ≤ ~31 m per routed gap | Answer depends only on the cells, so it never drifts between runs or trip orders |
 | Rejected segment | Pay straight line only | A real detour may be under-paid | Flagged for human review |
 | Job queue | PostgreSQL `SKIP LOCKED` | Kafka-scale throughput | One fewer system; one-command run |
 | Integer millimetres | Slightly more code | — | Exact, order-independent sums |
@@ -496,5 +503,6 @@ Full HMM map-matching of every ping · live distance during the trip · GPS-spoo
 | Date | Segment | Change |
 |---|---|---|
 | 2026-10-29 | S1 | First version |
+| 2026-10-29 | S4 | Routing layer built inside `app` (no separate mock-router service): grid snap to cell centres, Caffeine cache in front of a Resilience4j breaker, per-trip `RoutingUsage`. Geometry guard replaced by cell-centre snapping; batching dropped (A27); L2 Redis left optional |
 | 2026-10-29 | S3 | Pings outside the trip window (± clock-skew tolerance) are dropped first, via `CleaningPipeline.forTrip`. Same-second points within 50 m count as one spot. `TripDistance` now also records `routeRequests` and the route answers it paid on (`routesUsed`), ready for pinning in S7 |
 | 2026-10-29 | S2 | Added step 0 (drop invalid coordinates) before dedupe; specified dedupe tie-breaks and the re-anchor guard's "majority wins" rule |
