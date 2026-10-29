@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TripLedger Console</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+  /* TripLedger demo console. Colours follow the MoveInSync-style mockup: green brand, quiet greys. */
+  :root {
+    --brand: #43B02A; --brand-dark: #1F5C14; --brand-soft: #EAF6E6;
+    --ink: #171717; --ink-2: #3F4A45; --muted: #5F6B66; --line: #E6EAE8; --bg: #F1F3F2; --card: #FFFFFF;
+    --amber: #B7791F; --amber-soft: #FFF4E0; --red: #C53030; --red-soft: #FDECEC; --blue: #2B6CB0; --blue-soft: #EBF4FF;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 1000; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
+  .logo-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--brand); display: grid; place-items: center; color: #fff; font-size: 13px; }
+  .logo small { font-weight: 500; color: var(--muted); margin-left: 4px; }
+  .spacer { flex: 1; }
+  .who { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+  .who input { width: 110px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+  main { display: grid; grid-template-columns: 320px 1fr; gap: 16px; padding: 16px 20px 32px; max-width: 1480px; margin: 0 auto; }
+  @media (max-width: 960px) { main { grid-template-columns: 1fr; padding: 12px 16px; } header { flex-wrap: wrap; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+  .step { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
+  .step:first-of-type { border-top: 0; padding-top: 0; }
+  .step-n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; font-size: 12px; display: grid; place-items: center; }
+  .step p { margin: 2px 0 8px; color: var(--muted); font-size: 12.5px; }
+  .step b { font-weight: 600; }
+  button { font: inherit; border-radius: 7px; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 7px 12px; cursor: pointer; font-weight: 600; font-size: 13px; }
+  button:hover:not(:disabled) { border-color: #C9D1CD; }
+  button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  button.primary:hover:not(:disabled) { background: #3A9C24; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .kv { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .kv:first-of-type { border-top: 0; }
+  .kv span:first-child { color: var(--muted); }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #EEF1EF; color: var(--ink-2); }
+  .pill.ok { background: var(--brand-soft); color: var(--brand-dark); }
+  .pill.warn { background: var(--amber-soft); color: var(--amber); }
+  .pill.bad { background: var(--red-soft); color: var(--red); }
+  .switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .toggle { position: relative; width: 44px; height: 24px; border-radius: 999px; background: var(--brand); border: 0; padding: 0; }
+  .toggle::after { content: ""; position: absolute; top: 3px; left: 23px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .toggle.off { background: #C9D1CD; }
+  .toggle.off::after { left: 3px; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi .label { color: var(--muted); font-size: 12.5px; }
+  .kpi .value { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi .value small { font-size: 14px; font-weight: 600; color: var(--muted); margin-left: 3px; }
+  .kpi .note { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .kpi.hero .value { color: var(--brand-dark); }
+  .trip-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .trip-head h1 { font-size: 17px; margin: 0; }
+  .trip-head .meta { color: var(--muted); font-size: 12.5px; }
+  #map { height: 420px; border-radius: 8px; border: 1px solid var(--line); background: #E9EEEB; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .legend i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  .grid2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+  @media (max-width: 1100px) { .grid2 { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 7px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  td.num, th.num { text-align: right; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { font-size: 12px; padding: 3px 8px; border-radius: 6px; background: #F0F2F1; color: var(--ink-2); }
+  .chip b { font-weight: 700; }
+  .empty { color: var(--muted); font-size: 13px; padding: 18px 0; text-align: center; }
+  .delta-pos { color: var(--brand-dark); font-weight: 700; }
+  .delta-neg { color: var(--red); font-weight: 700; }
+  .trips-list button { width: 100%; text-align: left; display: flex; justify-content: space-between; margin-top: 6px; font-weight: 500; }
+  .toast { position: fixed; right: 20px; bottom: 20px; max-width: 380px; background: var(--ink); color: #fff; padding: 12px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.18); opacity: 0; transform: translateY(8px); transition: all .2s; pointer-events: none; z-index: 2000; }
+  .toast.show { opacity: 1; transform: none; }
+  .toast.err { background: var(--red); }
+  .toast code { opacity: .8; font-size: 11.5px; }
+  .muted { color: var(--muted); }
+  a { color: var(--brand-dark); }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-mark">TL</div>TripLedger <small>billable distance console</small></div>
+  <div class="spacer"></div>
+  <div class="who">Company <input id="tenant" value="acme" aria-label="Tenant id"> <span id="auth" class="pill">signing in...</span></div>
+  <a href="/swagger-ui.html" target="_blank" rel="noopener">API docs</a>
+  <a href="http://localhost:3000" target="_blank" rel="noopener">Grafana</a>
+</header>
+
+<main>
+  <aside class="stack">
+    <section class="card">
+      <h2>Demo script</h2>
+      <div class="step"><div class="step-n">1</div><div>
+        <b>Upload the underpass trip</b>
+        <p>9 km of pings, then 22 min of no GPS while the cab drops an employee, then 7 km more.</p>
+        <button class="primary" id="btn-upload">Upload trip</button>
+      </div></div>
+      <div class="step"><div class="step-n">2</div><div>
+        <b>Bill it</b>
+        <p>Freezes today's km on an invoice. Nothing will ever edit that invoice.</p>
+        <button id="btn-bill" disabled>Put on invoice</button>
+      </div></div>
+      <div class="step"><div class="step-n">3</div><div>
+        <b>Late pings arrive</b>
+        <p>The phone was offline at the end of the trip and sends 1.5 km more after billing.</p>
+        <button id="btn-late" disabled>Send late pings</button>
+      </div></div>
+      <div class="step"><div class="step-n">4</div><div>
+        <b>Break the map service</b>
+        <p>Switch it off below, then upload a new trip: it comes out DEGRADED (straight line × 1.4). Switch it back on and recompute.</p>
+        <button id="btn-recompute" disabled>Recompute this trip</button>
+      </div></div>
+    </section>
+
+    <section class="card">
+      <h2>System</h2>
+      <div class="switch kv"><span>Map service (mock)</span><button class="toggle" id="btn-provider" aria-label="Switch map service"></button></div>
+      <div class="kv"><span>Circuit breaker</span><span id="s-breaker" class="pill">-</span></div>
+      <div class="kv"><span>Cached routes</span><span id="s-cache">-</span></div>
+      <div class="kv"><span>Jobs waiting / running</span><span id="s-queue">-</span></div>
+      <div class="kv"><span>Compute lag</span><span id="s-lag">-</span></div>
+    </section>
+
+    <section class="card">
+      <h2>Recent trips</h2>
+      <div id="trips" class="trips-list"><div class="empty">No trips yet</div></div>
+    </section>
+  </aside>
+
+  <section class="stack">
+    <div class="kpis">
+      <div class="card kpi hero"><div class="label">Billable distance</div><div class="value" id="k-km">-</div><div class="note" id="k-km-note">rounded once, to 10 m</div></div>
+      <div class="card kpi"><div class="label">Naive "join the pings"</div><div class="value" id="k-naive">-</div><div class="note">what a simple sum would have paid</div></div>
+      <div class="card kpi"><div class="label">Paid routing calls</div><div class="value" id="k-calls">-</div><div class="note" id="k-calls-note">-</div></div>
+      <div class="card kpi"><div class="label">Status</div><div class="value" style="font-size:20px;margin-top:10px"><span id="k-status" class="pill">no trip</span></div><div class="note" id="k-status-note">&nbsp;</div></div>
+    </div>
+
+    <section class="card">
+      <div class="trip-head"><h1 id="trip-title">No trip loaded</h1><span class="meta" id="trip-meta"></span></div>
+      <div id="map"></div>
+      <div class="legend">
+        <span><i style="background:#8FA69A"></i>GPS pings (straight line)</span>
+        <span><i style="background:#43B02A"></i>Routed gap (road distance)</span>
+        <span><i style="background:#B7791F"></i>Degraded (× 1.4 guess)</span>
+        <span><i style="background:#C53030"></i>Rejected</span>
+        <span><i style="background:#2B6CB0"></i>Parked</span>
+      </div>
+    </section>
+
+    <div class="grid2">
+      <section class="card">
+        <h2>Why this many km</h2>
+        <div class="chips" id="rule-chips"></div>
+        <table>
+          <thead><tr><th>#</th><th>From</th><th>To</th><th>Rule</th><th class="num">km</th></tr></thead>
+          <tbody id="segments"><tr><td colspan="5" class="empty">Upload a trip to see how every metre was measured</td></tr></tbody>
+        </table>
+        <p class="muted" id="seg-note" style="font-size:12px;margin:8px 0 0"></p>
+      </section>
+      <section class="card">
+        <h2>Invoice and adjustments</h2>
+        <div id="billing"><div class="empty">Not billed yet</div></div>
+      </section>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+/*
+ * Everything here talks to the real API with a real (dev) token - no shortcuts. The demo trip is
+ * built in the browser with the same shape as the "underpass" trip in the tests.
+ */
+const state = { token: null, tripId: null, pingsByTrip: {}, lastLate: {} };
+const $ = (id) => document.getElementById(id);
+
+// ---------- API ----------
+async function api(method, path, body, extraHeaders) {
+  const headers = { 'Authorization': 'Bearer ' + state.token, ...(extraHeaders || {}) };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) {
+    const err = new Error((data && (data.detail || data.title)) || res.statusText);
+    err.problem = data;
+    throw err;
+  }
+  return data;
+}
+
+async function signIn() {
+  const tenant = $('tenant').value.trim() || 'acme';
+  try {
+    const res = await fetch('/v1/dev/tokens', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenant, subject: 'demo-console', roles: ['ADMIN', 'OPERATOR'] }) });
+    if (!res.ok) throw new Error('dev tokens are switched off on this server');
+    state.token = (await res.json()).token;
+    $('auth').textContent = tenant + ' · admin';
+    $('auth').className = 'pill ok';
+    refreshStatus();
+    refreshTrips();
+  } catch (e) {
+    $('auth').textContent = 'not signed in';
+    $('auth').className = 'pill bad';
+    toast('Could not get a demo token: ' + e.message, true);
+  }
+}
+
+// ---------- the demo trip (same geometry as the tests' underpass trip) ----------
+const M_PER_DEG = 6371008.8 * Math.PI / 180;
+const north = (p, m) => ({ lat: p.lat + m / M_PER_DEG, lon: p.lon });
+const east = (p, m) => ({ lat: p.lat, lon: p.lon + m / (M_PER_DEG * Math.cos(p.lat * Math.PI / 180)) });
+function haversine(a, b) {
+  const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371008.8 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function buildUnderpassTrip() {
+  // every new trip starts a little further east, so the map service has to route it fresh
+  const shift = (Date.now() % 997) * 7;
+  const office = east({ lat: 12.9698, lon: 77.7500 }, shift);
+  const t0 = new Date(Math.floor(Date.now() / 60000) * 60000 - 60 * 60000); // started an hour ago
+  const at = (s) => new Date(t0.getTime() + s * 1000).toISOString();
+  const pings = [];
+  let p = office;
+  for (let i = 0; i < 181; i++) { pings.push({ ts: at(i * 5), lat: p.lat, lon: p.lon, accuracyM: 6, seq: i }); p = north(p, 50); }
+  const g0 = pings[180];
+  const drop = east(north(g0, 3987.6), 2085.4);       // where employee e-104 was dropped, inside the GPS gap
+  let q = east(g0, 2400);                              // GPS comes back 2.4 km east of where it went quiet
+  for (let i = 0; i < 141; i++) { pings.push({ ts: at(2220 + i * 5), lat: q.lat, lon: q.lon, accuracyM: 6, seq: 181 + i }); q = north(q, 50); }
+  return {
+    request: {
+      tripType: 'LOGOUT', windowStart: at(0), windowEnd: at(7200),
+      plannedOffice: { lat: office.lat, lon: office.lon }, pings,
+      milestones: [
+        { type: 'TRIP_START', lat: office.lat, lon: office.lon, ts: at(0) },
+        { employeeRef: 'e-104', type: 'DROP', lat: drop.lat, lon: drop.lon, ts: at(1560) }
+      ],
+      plannedStops: [{ employeeRef: 'e-104', riderType: 'PLANNED', lat: drop.lat, lon: drop.lon, plannedTs: at(1560) }]
+    },
+    t0, last: q
+  };
+}
+
+function naiveKm(pings) {
+  let m = 0;
+  for (let i = 1; i < pings.length; i++) m += haversine(pings[i - 1], pings[i]);
+  return m / 1000;
+}
+
+// ---------- actions ----------
+// crypto.randomUUID only exists on https / localhost; opened over a LAN IP we fall back to a random string
+const newKey = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+  : 'k-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+
+async function uploadTrip() {
+  const trip = buildUnderpassTrip();
+  const tripId = 'DEMO-' + Date.now().toString(36).toUpperCase();
+  await guarded('btn-upload', async () => {
+    const res = await api('POST', `/v1/trips/${tripId}/evidence`, trip.request, { 'Idempotency-Key': newKey() });
+    state.pingsByTrip[tripId] = trip.request.pings.slice();
+    state.lastLate[tripId] = { req: trip.request, next: trip.last, sec: 2925, seq: 322 };
+    toast(`Uploaded ${res.pingsReceived} pings - computing in the background...`);
+    await waitForResult(tripId);
+    refreshTrips();
+  });
+}
+
+async function billTrip() {
+  if (!state.tripId) return;
+  const invoice = 'INV-' + new Date().toISOString().slice(0, 10).replaceAll('-', '') + '-' + Math.floor(Math.random() * 900 + 100);
+  await guarded('btn-bill', async () => {
+    const res = await api('POST', `/v1/trips/${state.tripId}/bill`, { invoiceId: invoice });
+    toast(`Billed ${res.billedKm} km on ${res.invoiceId}`);
+    await loadTrip(state.tripId);
+  });
+}
+
+async function sendLatePings() {
+  const memo = state.lastLate[state.tripId];
+  if (!memo) { toast('Late pings work on a trip uploaded from this page', true); return; }
+  const late = [];
+  let p = memo.next;
+  for (let i = 0; i < 30; i++) {
+    late.push({ ts: new Date(new Date(memo.req.windowStart).getTime() + (memo.sec + i * 5) * 1000).toISOString(), lat: p.lat, lon: p.lon, accuracyM: 6, seq: memo.seq + i });
+    p = north(p, 50);
+  }
+  memo.next = p; memo.sec += 150; memo.seq += 30;
+  const req = { ...memo.req, pings: late };
+  await guarded('btn-late', async () => {
+    const res = await api('POST', `/v1/trips/${state.tripId}/evidence`, req, { 'Idempotency-Key': newKey() });
+    state.pingsByTrip[state.tripId].push(...late);
+    toast(`Late pings: ${res.pingsNew} new - recomputing...`);
+    await waitForResult(state.tripId);
+  });
+}
+
+async function recompute() {
+  if (!state.tripId) return;
+  await guarded('btn-recompute', async () => {
+    const res = await api('POST', `/v1/trips/${state.tripId}/recompute`);
+    toast(`Recompute queued...`);
+    // recompute keeps the old status until the worker picks the job up (it looks every 2 s)
+    await new Promise(r => setTimeout(r, 2500));
+    await waitForResult(state.tripId);
+    refreshTrips();
+  });
+}
+
+async function toggleProvider() {
+  const off = !$('btn-provider').classList.contains('off');
+  try {
+    await api('PUT', '/v1/admin/routing/mock', { down: off });
+    toast(off ? 'Map service switched OFF - new gaps will be DEGRADED' : 'Map service back ON');
+    refreshStatus();
+  } catch (e) { showError(e); }
+}
+
+// uploads only queue a job (the worker polls every 2 s), so poll until the trip has an answer
+async function waitForResult(tripId) {
+  for (let i = 0; i < 20; i++) {
+    const d = await api('GET', `/v1/trips/${tripId}/distance`);
+    if (d.status !== 'RECEIVED') break;
+    await new Promise(r => setTimeout(r, 750));
+  }
+  await loadTrip(tripId);
+  refreshTrips();
+  toast(`${tripId}: ${$('k-status').textContent} · ${$('k-km').textContent.replace('km', ' km')}`);
+}
+
+async function guarded(buttonId, fn) {
+  const b = $(buttonId);
+  b.disabled = true;
+  try { await fn(); } catch (e) { showError(e); } finally { b.disabled = false; updateButtons(); }
+}
+
+// ---------- rendering ----------
+let map, layer;
+function initMap() {
+  if (!window.L) { $('map').innerHTML = '<div class="empty">Map library could not load (offline?). Everything else still works.</div>'; return; }
+  map = L.map('map', { zoomControl: true }).setView([13.01, 77.76], 12);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+  layer = L.layerGroup().addTo(map);
+}
+
+const RULE_COLORS = { SHORT_GAP_AERIAL: '#8FA69A', ROUTED: '#43B02A', DEGRADED_AERIAL: '#B7791F', PARKED: '#2B6CB0', REJECTED_SPEED: '#C53030', REJECTED_DISTANCE: '#C53030' };
+
+async function loadTrip(tripId) {
+  state.tripId = tripId;
+  const [dist, br, adj] = await Promise.all([
+    api('GET', `/v1/trips/${tripId}/distance`),
+    api('GET', `/v1/trips/${tripId}/breakdown`),
+    api('GET', `/v1/trips/${tripId}/adjustments`)
+  ]);
+  renderKpis(dist);
+  renderMap(br);
+  renderSegments(br);
+  renderBilling(adj);
+  $('trip-title').textContent = tripId;
+  $('trip-meta').textContent = dist.computedAt ? `computed ${new Date(dist.computedAt).toLocaleTimeString()} · rules ${dist.ruleVersion} · settings v${dist.configVersion}` : '';
+  state.billed = !!adj.invoiceId;
+  updateButtons();
+}
+
+function renderKpis(d) {
+  $('k-km').innerHTML = d.billableKm ? `${d.billableKm}<small>km</small>` : '-';
+  const pings = state.pingsByTrip[d.tripId];
+  $('k-naive').innerHTML = pings ? `${naiveKm(pings).toFixed(2)}<small>km</small>` : '-';
+  if (d.routing) {
+    $('k-calls').textContent = d.routing.providerCalls;
+    $('k-calls-note').textContent = `${d.routing.requests + d.routing.replayed} lookups · ${d.routing.cacheHits} cached · ${d.routing.replayed} replayed`;
+  }
+  const s = $('k-status');
+  s.textContent = d.status;
+  s.className = 'pill ' + (d.status === 'COMPUTED' ? 'ok' : d.status === 'DEGRADED' ? 'warn' : '');
+  $('k-status-note').textContent = d.status === 'DEGRADED' ? `${d.routing ? d.routing.unavailable : 0} gap(s) guessed - will be fixed automatically` : (d.status === 'COMPUTED' ? 'every gap measured properly' : '');
+}
+
+function renderMap(br) {
+  if (!map) return;
+  layer.clearLayers();
+  const bounds = [];
+  for (const s of br.segments) {
+    const a = [s.fromLat, s.fromLon], b = [s.toLat, s.toLon];
+    bounds.push(a, b);
+    const gap = s.rule !== 'SHORT_GAP_AERIAL';
+    L.polyline([a, b], { color: RULE_COLORS[s.rule] || '#5F6B66', weight: gap ? 5 : 3, dashArray: gap ? '8 7' : null, opacity: .95 })
+      .bindTooltip(`#${s.seq} ${s.rule} · ${s.km} km`).addTo(layer);
+  }
+  for (const a of (br.anchors || [])) {
+    const isOffice = a.kind === 'OFFICE';
+    L.circleMarker([a.lat, a.lon], { radius: isOffice ? 8 : 7, color: '#fff', weight: 2, fillColor: isOffice ? '#171717' : '#1F5C14', fillOpacity: 1 })
+      .bindTooltip(`${isOffice ? 'Office' : a.kind.replace('EMPLOYEE_', '').toLowerCase() + ' of ' + a.employeeRef} · ${a.source.toLowerCase().replace('_', ' ')}`).addTo(layer);
+  }
+  if (bounds.length) map.fitBounds(bounds, { padding: [24, 24] });
+}
+
+function renderSegments(br) {
+  const counts = br.ruleCounts || {};
+  $('rule-chips').innerHTML = Object.entries(counts).map(([r, n]) => `<span class="chip"><b>${n}</b> ${r.replaceAll('_', ' ').toLowerCase()}</span>`).join('');
+  // the interesting ones first: everything that isn't a plain 5-second hop
+  const interesting = br.segments.filter(s => s.rule !== 'SHORT_GAP_AERIAL');
+  const shortKm = br.segments.filter(s => s.rule === 'SHORT_GAP_AERIAL').reduce((t, s) => t + s.distanceMm, 0) / 1e6;
+  const t = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const rows = interesting.map(s => `<tr><td>${s.seq}</td><td>${t(s.from)}</td><td>${t(s.to)}</td>
+      <td><span class="pill ${s.rule === 'ROUTED' ? 'ok' : s.rule.startsWith('REJECTED') ? 'bad' : s.rule === 'DEGRADED_AERIAL' ? 'warn' : ''}">${s.rule.replaceAll('_', ' ').toLowerCase()}</span></td>
+      <td class="num">${s.km}</td></tr>`);
+  rows.push(`<tr><td colspan="3" class="muted">${counts.SHORT_GAP_AERIAL || 0} short hops between pings</td><td><span class="pill">short gap aerial</span></td><td class="num">${shortKm.toFixed(3)}</td></tr>`);
+  $('segments').innerHTML = rows.join('');
+  const cl = br.cleaning;
+  $('seg-note').textContent = cl ? `Cleaning: ${cl.received} pings in, ${cl.kept} kept` + (cl.received > cl.kept ? ` (${Object.entries(cl.removed).filter(([, n]) => n).map(([f, n]) => n + ' ' + f).join(', ')})` : '') : '';
+}
+
+function renderBilling(a) {
+  if (!a.invoiceId) { $('billing').innerHTML = '<div class="empty">Not billed yet</div>'; return; }
+  const lines = a.adjustments.map(x => `<tr><td>${new Date(x.createdAt).toLocaleTimeString()}</td>
+      <td class="num ${x.deltaKm.startsWith('-') ? 'delta-neg' : 'delta-pos'}">${x.deltaKm} km</td></tr>`).join('');
+  $('billing').innerHTML = `
+    <div class="kv"><span>Invoice</span><b>${a.invoiceId}</b></div>
+    <div class="kv"><span>Billed then</span><span>${a.billedKm} km</span></div>
+    ${a.adjustments.length ? `<table style="margin:8px 0"><thead><tr><th>Adjustment</th><th class="num">Change</th></tr></thead><tbody>${lines}</tbody></table>` : '<p class="muted" style="font-size:12.5px">No changes since billing.</p>'}
+    <div class="kv"><span>Charged in total</span><b>${a.chargedKm} km</b></div>
+    <p class="muted" style="font-size:12px;margin:8px 0 0">The invoice is never edited - every later change is its own signed line.</p>`;
+}
+
+function updateButtons() {
+  const has = !!state.tripId;
+  $('btn-bill').disabled = !has || state.billed;
+  $('btn-late').disabled = !has || !state.lastLate[state.tripId];
+  $('btn-recompute').disabled = !has;
+}
+
+async function refreshStatus() {
+  if (!state.token) return;
+  try {
+    const s = await api('GET', '/v1/admin/status');
+    const off = s.routing.providerDown === true;
+    $('btn-provider').classList.toggle('off', off);
+    const b = s.routing.breaker;
+    $('s-breaker').textContent = b;
+    $('s-breaker').className = 'pill ' + (b === 'CLOSED' ? 'ok' : b === 'OPEN' ? 'bad' : 'warn');
+    $('s-cache').textContent = `${s.routing.cachedRoutes} (${Math.round(s.routing.cacheHitRatio * 100)}% hits)`;
+    $('s-queue').textContent = `${s.jobs.pending} / ${s.jobs.running}`;
+    $('s-lag').textContent = s.jobs.oldestPendingSeconds ? Math.round(s.jobs.oldestPendingSeconds) + ' s' : 'none';
+  } catch (e) { /* status is best effort */ }
+}
+
+async function refreshTrips() {
+  if (!state.token) return;
+  try {
+    const trips = await api('GET', '/v1/trips?limit=8');
+    $('trips').innerHTML = trips.length ? trips.map(t => `<button data-trip="${t.tripId}"><span>${t.tripId}</span>
+        <span class="pill ${t.status === 'COMPUTED' ? 'ok' : t.status === 'DEGRADED' ? 'warn' : ''}">${t.status}</span></button>`).join('')
+      : '<div class="empty">No trips yet</div>';
+    $('trips').querySelectorAll('button').forEach(b => b.onclick = () => loadTrip(b.dataset.trip).catch(showError));
+  } catch (e) { /* best effort */ }
+}
+
+let toastTimer;
+function toast(msg, isErr) {
+  const t = $('toast');
+  t.innerHTML = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', isErr ? 6000 : 3000);
+}
+function showError(e) {
+  const p = e.problem;
+  toast(p ? `${p.title}: ${p.detail || ''}<br><code>${p.code || ''} · trace ${p.traceId || '-'}</code>` : e.message, true);
+}
+
+// ---------- wiring ----------
+$('btn-upload').onclick = uploadTrip;
+$('btn-bill').onclick = billTrip;
+$('btn-late').onclick = sendLatePings;
+$('btn-recompute').onclick = recompute;
+$('btn-provider').onclick = toggleProvider;
+$('tenant').onchange = signIn;
+initMap();
+signIn();
+setInterval(() => { refreshStatus(); }, 3000);
+setInterval(() => { refreshTrips(); if (state.tripId && $('k-status').textContent !== 'COMPUTED') loadTrip(state.tripId).catch(() => {}); }, 6000);
+</script>
+</body>
+</html>
