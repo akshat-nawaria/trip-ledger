@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.tripledger</groupId>
+        <artifactId>tripledger-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>bench</artifactId>
+    <name>TripLedger - Benchmark</name>
+    <description>10,000-trip engine benchmark with a mid-run routing outage (R16), plus the k6 load test script</description>
+
+    <properties>
+        <!-- change on the command line: mvn -q -pl bench exec:exec -Dbench.trips=2000 -Dbench.heap=512m -->
+        <bench.trips>10000</bench.trips>
+        <bench.heap>1g</bench.heap>
+    </properties>
+
+    <dependencies>
+        <!-- the real engine and the real routing chain (cache + breaker), used as plain libraries -->
+        <dependency>
+            <groupId>com.tripledger</groupId>
+            <artifactId>core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.tripledger</groupId>
+            <artifactId>app</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- runs the benchmark in its own JVM with a fixed heap, so Maven's own memory isn't measured -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <executable>${java.home}/bin/java</executable>
+                    <arguments>
+                        <argument>-Xmx${bench.heap}</argument>
+                        <argument>-XX:+UseG1GC</argument>
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>com.tripledger.bench.Benchmark</argument>
+                        <argument>${bench.trips}</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

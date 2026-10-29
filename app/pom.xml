@@ -91,6 +91,11 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- the runnable jar becomes app-...-exec.jar and the plain app-....jar stays a
+                         normal library, so the bench module can use the routing classes directly -->
+                    <classifier>exec</classifier>
+                </configuration>
             </plugin>
         </plugins>
     </build>

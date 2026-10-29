@@ -21,6 +21,7 @@
     <modules>
         <module>core</module>
         <module>app</module>
+        <module>bench</module>
     </modules>
 
     <properties>
@@ -38,6 +39,11 @@
             <dependency>
                 <groupId>com.tripledger</groupId>
                 <artifactId>core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tripledger</groupId>
+                <artifactId>app</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
