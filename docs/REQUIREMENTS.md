@@ -35,7 +35,7 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 | P03 | Fault tolerance: crashes, timeouts, duplicates, out-of-order, partial failure; one failure-injection test | S5, S7 | Crash + duplicate tests | [x] Duplicates, retries, split uploads, outage (S5); crashed-worker lease recovery, failing job → FAILED, retry back-off (S7, `JobsIntegrationTest`) |
 | P04 | OOP: encapsulation, inheritance, polymorphism; controller / service / repository | S2–S5 | Core runs with no Spring | [x] `TripController` → `EvidenceService` / `DistanceService` / `TripQueryService` → repositories; `CoreModuleIsolationTest` |
 | P05 | Documented trade-offs (consistency vs availability vs latency), what was left out | S1, S10 | README section | [ ] |
-| P06 | Metrics + structured logging: lag, error rate, rejections, retries, queue depth | S8 | Grafana dashboard | [ ] |
+| P06 | Metrics + structured logging: lag, error rate, rejections, retries, queue depth | S8 | Grafana dashboard | [x] Prometheus metrics for lag, queue depth, retries, rejections (`segments{rule=REJECTED_*}`), routing calls, breaker; API error rate + p95 from Spring; provisioned Grafana dashboard; ECS JSON logs with `traceId` / `tenantId` / `tripId` (`MetricsIntegrationTest`) |
 | P07 | Caching with eviction policy; what can go stale, for how long, how it is bounded | S4 | Staleness table | [ ] |
 | P08 | Error handling with non-leaking messages; no personal data in logs or errors | S6 | Log-scan test | [x] problem+json with `code` + `traceId`; 500s say nothing internal; log scan finds no employee refs or coordinates (`ErrorHandlingIntegrationTest`) |
 
@@ -46,11 +46,11 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 | A01 | Every hard rule has an automated test, incl. one concurrency test and one failure test | S2–S7 | CI green | [x] Rule/filter/anchor unit tests (S2–S3); concurrency: 8 workers / 8 computes on one trip (S7); failure: outage, crash, missing trip (S5–S7) |
 | A02 | Load test with throughput and p50 / p99, machine stated | S9 | k6 results in README | [ ] |
 | A03 | Design note: architecture diagram, sequence diagram, failure-mode table | S1 | `docs/DESIGN.md` | [x] |
-| A04 | One-command run (`docker compose up`) incl. database | S0, S8 | Fresh-clone test | [~] database done (S0); app added in S8 |
+| A04 | One-command run (`docker compose up`) incl. database | S0, S8 | Fresh-clone test | [x] `docker compose up --build` starts PostgreSQL, the app (two-stage Dockerfile), Prometheus and Grafana; demo console at `:8080` |
 
 ## Submission instructions
 
 | ID | Requirement | Segment | Proof | Done |
 |----|-------------|---------|-------|------|
 | I01 | Public GitHub repo with meaningful commit history | S0, S10 | Commit log | [ ] |
-| I02 | Demo video: main flows, one live failure, sample API calls | S10 | Link in README | [ ] |
+| I02 | Demo video: main flows, one live failure, sample API calls | S10 | Link in README | [ ] Demo console + live map-service switch ready (S8) |

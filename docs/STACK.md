@@ -25,6 +25,8 @@
 | Database | PostgreSQL 16, schema by Flyway |
 | API docs | springdoc-openapi 2.8 (Swagger UI) |
 | Container runtime | Docker + Docker Compose |
+| Metrics | Micrometer + Prometheus registry, Prometheus 2.55, Grafana 11.3 |
+| Demo console | One static HTML page served by the app, Leaflet 1.9 map from a CDN (no build step, no Node) |
 
 ## Modules
 

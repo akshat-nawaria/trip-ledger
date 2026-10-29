@@ -290,6 +290,8 @@ Rule 0 exists because a road is never shorter than the straight line: if even th
 | `GET` | `/v1/trips?status=DEGRADED` | ADMIN | Recovery backlog |
 | `GET`, `PUT` | `/v1/tenant/config` | ADMIN | Billing settings; every save creates a new version *(S6)* |
 | `POST` | `/v1/dev/tokens` | anyone, local only | Token for any tenant / role, when `dev-tokens=true` *(S6)* |
+| `GET` | `/v1/admin/status` | ADMIN | Routing (provider, breaker, cache) and queue (pending, running, failed, lag) *(S8)* |
+| `PUT` | `/v1/admin/routing/mock` | ADMIN | Switch the mock map service off / on for a live outage demo; refused for real providers *(S8)* |
 | `GET` | `/actuator/health`, `/actuator/prometheus` | Internal | Health and metrics |
 
 ### 6.1 Example: ingest
@@ -467,6 +469,18 @@ sequenceDiagram
 
 ## 10. Observability
 
+### 10.0 As built (S8)
+
+- **Metrics:** Micrometer with the Prometheus registry, scraped every 5 s from `/actuator/prometheus` (open, counts only). Business counters live in one class (`TripLedgerMetrics`), "right now" values are gauges read at scrape time (`GaugesConfig`). No tenant or trip id is ever a tag. Names as built: `tripledger_trips_computed_total{status}`, `tripledger_trips_reused_total`, `tripledger_compute_duration_seconds` (histogram), `tripledger_segments_total{rule}`, `tripledger_routing_lookups_total{source=cache|provider|replayed}`, `tripledger_routing_unavailable_total`, `tripledger_routing_breaker_state`, `tripledger_routing_cache_hit_ratio`, `tripledger_jobs_queue{status=pending|running|failed_24h}`, `tripledger_jobs_oldest_pending_age_seconds`, `tripledger_jobs_finished_total{outcome}`, `tripledger_ingest_*`, `tripledger_adjustments_created_total`, plus Spring's `http_server_requests_seconds`.
+- **Dashboard:** Grafana with the data source and the "TripLedger" dashboard provisioned from files (`monitoring/`), anonymous read-only access. 15 panels in 5 rows: right now (trips in the last hour, paid routing calls per trip, cache hit ratio, breaker, jobs waiting, compute lag), trips and routing cost (trips per minute by status, road distances by source), background jobs (queue, outcomes incl. retries), rules, rejections and billing (segments by rule, adjustments), API (requests by status, latency p50/p95/p99, 5xx rate).
+- **Logs:** in Docker, Spring Boot's built-in ECS JSON format; `traceId` (every request) and `tenantId` / `tripId` (worker jobs) travel as MDC fields. No coordinates or employee refs (S6 log-scan test).
+- **Ops view:** `GET /v1/admin/status` gives the same health numbers as JSON; the demo console polls it.
+- **One-command run:** `docker compose up --build` builds the app image (two stages: Maven + JDK 21, then JRE 21 as non-root user, `MaxRAMPercentage=75`) and starts PostgreSQL, app, Prometheus and Grafana. The app waits for a healthy database.
+- **Demo console:** a single static page (`/`) that signs itself in with a dev token and drives the real API: upload the underpass trip, see each segment on a Leaflet map coloured by rule, bill it, send late pings (signed adjustment appears), and flip the mock map service off and on.
+- Not built from the plan below: `determinism_mismatch_total` (shadow recompute) and alert rules; the dashboard shows the thresholds, nothing pages anyone.
+
+### 10.1 Planned signals (S1)
+
 | Signal | Metric | Alert when |
 |---|---|---|
 | Lag | `ingest_lag_seconds`, `compute_queue_depth` | Lag > 5 min |
@@ -524,6 +538,7 @@ Full HMM map-matching of every ping · live distance during the trip · GPS-spoo
 | Date | Segment | Change |
 |---|---|---|
 | 2026-10-29 | S1 | First version |
+| 2026-10-30 | S8 | Metrics, dashboard, ECS logs, Docker image and full-stack compose, admin status + mock outage switch, demo console (10.0). Metric names settled as `tripledger_*`; no alerting rules and no shadow determinism check |
 | 2026-10-29 | S7 | Jobs, recovery, pinned routes, billing + signed adjustments as described in 8.0. Upload still computes inline first (fast path) with the queue as the durable fallback, instead of queue-only; billing is separate columns on `trip` rather than BILLED/ADJUSTED states |
 | 2026-10-29 | S6 | Security as built: HS256 JWT (not RS256) for local runs, roles per endpoint, employee own-trip rule, tenant only from the token, 404 across tenants; versioned per-tenant settings (`V2`, `config_version` on runs); uniform problem+json with `code` + `traceId`; row-level security not built (trade-off) |
 | 2026-10-29 | S5 | Database + REST API built: Flyway `V1` schema keyed by (`tenant_id`, `trip_id`); Spring JDBC repositories (not JPA); idempotent, multi-part ingest; evidence fingerprint lets an unchanged trip reuse its saved run (no new routing calls); compute runs inline after upload until S7; tests use a real PostgreSQL (Compose locally, service container in CI) instead of Testcontainers |
