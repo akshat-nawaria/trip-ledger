@@ -1,0 +1,9 @@
+# keep the build context small and never bake local build output or git history into the image
+**/target
+.git
+.github
+.idea
+.vscode
+docs
+monitoring
+*.md

@@ -1,5 +1,10 @@
-# One-command infrastructure for local development.
-# S0: PostgreSQL only. Later segments add the app, mock router, Prometheus and Grafana.
+# One command runs everything:   docker compose up --build
+#   app         http://localhost:8080           (demo page at /, API docs at /swagger-ui.html)
+#   grafana     http://localhost:3000           (dashboard "TripLedger" opens by itself)
+#   prometheus  http://localhost:9090
+#   postgres    localhost:5432
+#
+# Just the database (what the tests and "mvn spring-boot:run" need):   docker compose up -d postgres
 services:
   postgres:
     image: postgres:16-alpine
@@ -17,6 +22,50 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  app:
+    build: .
+    image: tripledger-app:local
+    container_name: tripledger-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:postgresql://postgres:5432/tripledger
+      DB_USER: billing
+      DB_PASSWORD: billing_dev_only
+      # demo settings - see README before running this anywhere real
+      JWT_SECRET: ${JWT_SECRET:-local-dev-only-secret-change-me-0123456789}
+      DEV_TOKENS: "true"
+    ports:
+      - "8080:8080"
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: tripledger-prometheus
+    depends_on:
+      - app
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: tripledger-grafana
+    depends_on:
+      - prometheus
+    environment:
+      # read-only dashboards without logging in - fine for a local demo, never for production
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/tripledger.json
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
 
 volumes:
   pgdata:

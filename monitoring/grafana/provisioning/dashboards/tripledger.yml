@@ -1,0 +1,8 @@
+# load every dashboard JSON from this folder on start-up
+apiVersion: 1
+providers:
+  - name: tripledger
+    type: file
+    disableDeletion: true
+    options:
+      path: /var/lib/grafana/dashboards

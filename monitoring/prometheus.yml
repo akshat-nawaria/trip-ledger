@@ -1,0 +1,10 @@
+# Prometheus scrapes the app every 5 s. "app" is the service name in docker-compose.yml.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: tripledger
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["app:8080"]

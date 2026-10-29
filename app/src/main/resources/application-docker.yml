@@ -1,0 +1,14 @@
+# Settings used when the app runs inside docker compose (SPRING_PROFILES_ACTIVE=docker).
+# Everything not listed here comes from application.yml.
+
+spring:
+  datasource:
+    # "postgres" is the service name in docker-compose.yml
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/tripledger}
+
+logging:
+  structured:
+    format:
+      # one JSON object per line (Elastic Common Schema): easy to ship to any log store.
+      # traceId, tenantId and tripId from the MDC are included automatically.
+      console: ecs
