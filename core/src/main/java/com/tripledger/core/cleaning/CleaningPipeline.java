@@ -2,6 +2,8 @@ package com.tripledger.core.cleaning;
 
 import com.tripledger.core.config.BillingRules;
 import com.tripledger.core.model.Ping;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,15 @@ public final class CleaningPipeline {
                 new TimeOrderFilter(),
                 new AccuracyFilter(rules.maxAccuracyMetres()),
                 new TeleportFilter(rules.maxSpeedKmph(), rules.teleportReanchorRun())));
+    }
+
+    // what the engine actually uses per trip: same as standard, plus throwing out pings
+    // from outside the trip window first (wrong phone clocks)
+    public static CleaningPipeline forTrip(BillingRules rules, Instant windowStart, Instant windowEnd) {
+        List<PingFilter> filters = new ArrayList<>();
+        filters.add(new TripWindowFilter(windowStart, windowEnd, rules.clockSkewTolerance()));
+        filters.addAll(standard(rules).filters);
+        return new CleaningPipeline(filters);
     }
 
     public CleaningResult clean(List<Ping> rawPings) {

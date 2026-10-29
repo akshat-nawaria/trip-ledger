@@ -115,4 +115,18 @@ class CleaningPipelineTest {
     void rejectsAPipelineWithNoFilters() {
         assertThatThrownBy(() -> new CleaningPipeline(List.of())).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void perTripPipelineAlsoDropsPingsOutsideTheTripWindow() {
+        List<Ping> pings = new ArrayList<>(track);
+        pings.add(ping(-86_400, track.get(0).point())); // a day early - wrong phone clock
+        CleaningPipeline perTrip = CleaningPipeline.forTrip(BillingRules.defaults(),
+                track.get(0).timestamp(), track.get(29).timestamp());
+
+        CleaningResult result = perTrip.clean(pings);
+
+        assertThat(result.pings()).containsExactlyElementsOf(track);
+        assertThat(result.report().removedBy(TripWindowFilter.NAME)).isEqualTo(1);
+        assertThat(perTrip.filterNames().get(0)).isEqualTo(TripWindowFilter.NAME);
+    }
 }
