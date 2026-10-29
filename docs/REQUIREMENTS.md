@@ -10,7 +10,7 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 | ID | Requirement | Segment | Proof | Done |
 |----|-------------|---------|-------|------|
 | R01 | Ingest pings (lat, lon, timestamp, accuracy), milestones, planned stops, office | S5 | Evidence API integration test | [ ] |
-| R02 | Remove duplicates, sort by time, drop low-accuracy fixes, drop teleports (> 120 km/h, configurable) | S2 | One unit test per filter; 9 km in 4 s burst dropped | [ ] |
+| R02 | Remove duplicates, sort by time, drop low-accuracy fixes, drop teleports (> 120 km/h, configurable) | S2 | One unit test per filter; 9 km in 4 s burst dropped | [x] |
 | R03 | Employee anchor: actual point → ad-hoc profile home + sign-in time → planned location + planned time | S3 | Three fallback-branch tests | [ ] |
 | R04 | No-show anchor behind a config flag (no-show location, else planned) | S3 | Flag on / off tests | [ ] |
 | R05 | Office anchor: actual trip end only if within 400 m of planned office, else planned office + trip-end time | S3 | 399 m vs 401 m test | [ ] |
@@ -22,7 +22,7 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 | R11 | Idempotent recompute: same input + same rule version = same km | S7 | Run twice → identical | [ ] |
 | R12 | Late pings after billing produce a signed delta, never edit a closed invoice | S7 | Late-ping test | [ ] |
 | R13 | Deterministic, versioned rule order | S3 | Golden-file test | [ ] |
-| R14 | State units and rounding (how and when) | S2, S3 | Order-independence test | [ ] |
+| R14 | State units and rounding (how and when) | S2, S3 | Order-independence test | [x] |
 | R15 | Show provider-call count before and after caching | S4, S9 | README table | [ ] |
 | R16 | Benchmark 10,000 trips × ~1,500 pings: run time + memory, provider failure halfway | S9 | `bench/results.md` | [ ] |
 

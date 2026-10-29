@@ -9,7 +9,7 @@ MoveInSync Backend Case Study 2026 · Case Study 1 · Advanced Track.
 Rebuilds a trustworthy, explainable billable distance for every cab trip from unreliable GPS data.
 Every kilometre carries the rule that produced it, the same input always gives the same answer, and paid routing calls are kept to a minimum.
 
-> Status: **Segments S0–S1 complete** — project skeleton, CI, database and the design note. See [docs/ROADMAP.md](docs/ROADMAP.md).
+> Status: **Segments S0–S2 complete** — project skeleton, CI, database, design note, and the core domain with GPS cleaning (72 unit tests). See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Quick start
 
@@ -38,6 +38,20 @@ From segment S8 onwards, `docker compose up` also builds and starts the app itse
 core/   plain Java: the distance engine (no Spring, no database)
 app/    Spring Boot: REST API, security, persistence, jobs
 docs/   requirements tracker, assumptions, stack choice, roadmap, design note
+```
+
+## What works so far
+
+| Area | Classes | Proven by |
+|---|---|---|
+| Exact distances | `GeoPoint` (micro-degrees), `Distance` (integer mm), `Haversine` (StrictMath) | `GeoPointTest`, `DistanceTest`, `HaversineTest` |
+| One place for every threshold | `BillingRules` (case-study defaults + builder) | `BillingRulesTest` |
+| GPS cleaning | `InvalidCoordinateFilter` → `DuplicateFilter` → `TimeOrderFilter` → `AccuracyFilter` → `TeleportFilter`, run by `CleaningPipeline` | One test class per filter + `CleaningPipelineTest` (shuffled 1,000× → same result) |
+
+Run only the engine tests (fast, no database needed):
+
+```bash
+mvn -pl core test
 ```
 
 ## Documents

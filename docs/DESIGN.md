@@ -75,10 +75,10 @@ flowchart TB
 
 | Package | Contains | Segment |
 |---|---|---|
-| `core.model` | `GeoPoint`, `Ping`, `Milestone`, `PlannedStop`, `TripEvidence`, `Anchor`, `Segment`, `TripDistance` | S2 |
-| `core.geo` | `Haversine` (StrictMath), `Distance` (integer millimetres) | S2 |
+| `core.model` | `GeoPoint`, `Ping` (S2); `Milestone`, `PlannedStop`, `TripEvidence`, `Anchor`, `Segment`, `TripDistance` (S3) | S2, S3 |
+| `core.geo` | `Haversine` (StrictMath), `Distance` (integer millimetres), `Kinematics` (implied speed) | S2 |
 | `core.config` | `BillingRules` record — every threshold in one place | S2 |
-| `core.cleaning` | `PingFilter` interface; `DuplicateFilter`, `AccuracyFilter`, `TeleportFilter`; `CleaningPipeline` | S2 |
+| `core.cleaning` | `PingFilter` interface; `InvalidCoordinateFilter`, `DuplicateFilter`, `TimeOrderFilter`, `AccuracyFilter`, `TeleportFilter`; `CleaningPipeline` + `CleaningReport` | S2 |
 | `core.anchor` | `AnchorResolver` interface; `EmployeeAnchorResolver`, `NoShowAnchorResolver`, `OfficeAnchorResolver` | S3 |
 | `core.rules` | `SegmentRule` interface; `AbstractAerialRule`; rules 0–6; `RuleSet` (ordered, versioned) | S3 |
 | `core.engine` | `DistanceEngine`, `RouteLookup` port (implemented in `app`) | S3 |
@@ -220,7 +220,8 @@ Plus a `job` table (id, type, payload, `lease_until`, attempts) used as a work q
 
 ```mermaid
 flowchart LR
-    A["Raw evidence"] --> B["1 · Dedupe"]
+    A["Raw evidence"] --> Z["0 · Drop invalid<br/>coordinates"]
+    Z --> B["1 · Dedupe"]
     B --> C["2 · Sort by time<br/>tie: device seq"]
     C --> D["3 · Drop accuracy<br/>worse than 50 m"]
     D --> E["4 · Drop teleports<br/>over 120 km/h"]
@@ -230,7 +231,9 @@ flowchart LR
     H --> I["TripDistance<br/>+ labelled segments"]
 ```
 
-**Teleport re-anchor guard:** if three consecutive dropped pings agree with each other at a plausible speed, the *last accepted* ping was the bad one; it is removed and the three are kept.
+**Dedupe:** one ping per timestamp (a device cannot be in two places at once). Exact retries collapse; when copies disagree, the most accurate wins, then the lowest device sequence, then coordinates — so arrival order never changes the result.
+
+**Teleport re-anchor guard:** suspicious pings that agree with each other form a run. When the run reaches 3, the filter finds the latest accepted ping the run can connect to; if fewer accepted pings follow it than the run holds, those few were the outliers and are replaced by the run. This repairs a wrong *first* fix without letting a short GPS freeze overrule a longer real track.
 
 ### 5.2 Anchor resolution
 
@@ -493,3 +496,4 @@ Full HMM map-matching of every ping · live distance during the trip · GPS-spoo
 | Date | Segment | Change |
 |---|---|---|
 | 2026-10-29 | S1 | First version |
+| 2026-10-29 | S2 | Added step 0 (drop invalid coordinates) before dedupe; specified dedupe tie-breaks and the re-anchor guard's "majority wins" rule |

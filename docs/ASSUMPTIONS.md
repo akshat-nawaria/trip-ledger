@@ -21,3 +21,6 @@ Every value marked *configurable* lives in `application.yml` (and in the core `B
 | A14 | Earth radius | 6,371,008.8 m (mean radius), fixed in the rule set | — |
 | A15 | Routing provider | A mock provider is used for the demo and tests; the interface allows Google, OSRM or others | — |
 | A16 | Rule-set version | `v1`; a result always stores the rule-set version and a hash of the config it used | — |
+| A17 | Duplicate pings | One ping per timestamp; on conflict the most accurate wins, then lowest device sequence | — |
+| A18 | Invalid coordinates | Out-of-range points and (0, 0) are dropped before any other step | — |
+| A19 | Teleport re-anchor | 3 consistent suspicious pings in a row replace the accepted pings they contradict, but only if those are fewer | Yes |
