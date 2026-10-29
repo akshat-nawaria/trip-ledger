@@ -9,13 +9,14 @@ spring:
   # schema lives in src/main/resources/db/migration and is applied on startup
   flyway:
     locations: classpath:db/migration
-  # errors come back as RFC 7807 problem+json instead of Spring's default error page
-  mvc:
-    problemdetails:
-      enabled: true
 
 server:
   port: 8080
+
+# every log line carries the request's trace id, the same one the client sees in X-Trace-Id
+logging:
+  pattern:
+    level: "%5p [trace=%X{traceId:-}]"
 
 management:
   endpoints:
@@ -34,6 +35,14 @@ springdoc:
     path: /v3/api-docs
 
 tripledger:
+  security:
+    # HS256 signing secret, at least 32 characters. This default is for local runs ONLY -
+    # set JWT_SECRET to a long random value anywhere real.
+    jwt-secret: ${JWT_SECRET:local-dev-only-secret-change-me-0123456789}
+    issuer: tripledger
+    token-ttl: 8h
+    # POST /v1/dev/tokens hands a token to anyone who asks - great for a demo, must be false anywhere real
+    dev-tokens: ${DEV_TOKENS:true}
   routing:
     # which map service to ask for road distances. Only "mock" exists for now.
     provider: mock
