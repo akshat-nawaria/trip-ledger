@@ -9,7 +9,7 @@
 | S4 | Routing layer: cache, breaker, mock provider | 4, 5 | Done |
 | S5 | Database & REST APIs | 4, 5 | Done |
 | S6 | Security, tenancy & error handling | 4, 5 | Done |
-| S7 | Recompute, jobs & signed adjustments | 4, 5 | Pending |
+| S7 | Recompute, jobs & signed adjustments | 4, 5 | Done |
 | S8 | Monitoring & demo UI | 4, 8 | Pending |
 | S9 | Benchmark & load test | 5, 6 | Pending |
 | S10 | Docs, submission & demo video | 6, 7, 8 | Pending |

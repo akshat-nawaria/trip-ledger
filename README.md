@@ -9,7 +9,7 @@ MoveInSync Backend Case Study 2026 · Case Study 1 · Advanced Track.
 Rebuilds a trustworthy, explainable billable distance for every cab trip from unreliable GPS data.
 Every kilometre carries the rule that produced it, the same input always gives the same answer, and paid routing calls are kept to a minimum.
 
-> Status: **Segments S0–S6 complete.** The distance engine works end to end (underpass trip **18.4 → 30.61 km** with **2 routing calls**), routing is cached behind a circuit breaker (20 trips over one gap = **1** paid call), and a secured REST API on PostgreSQL: JWT roles (employee / operator / admin), strict per-company isolation, per-company billing settings with versions, and uniform errors with trace ids. **213 tests.** See [docs/ROADMAP.md](docs/ROADMAP.md).
+> Status: **Segments S0–S7 complete.** Distance engine (underpass trip **18.4 → 30.61 km**, **2 routing calls**), cached + circuit-broken routing (20 trips over one gap = **1** paid call), secured multi-company REST API on PostgreSQL, and now a crash-safe job queue: automatic recompute when routing recovers, pinned routes so billed trips can't drift, and billing with **signed adjustments** for late pings. **235 tests.** See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Quick start
 
@@ -62,6 +62,9 @@ In Swagger UI: call `POST /v1/dev/tokens`, copy the token, click **Authorize**, 
 | `GET /v1/trips/{tripId}/distance` | EMPLOYEE (own trips), OPERATOR, ADMIN | Billable km, status, rule + settings version, routing calls used |
 | `GET /v1/trips/{tripId}/breakdown` | OPERATOR, ADMIN | Every segment with its rule, plus what cleaning removed and which anchors were used |
 | `GET /v1/trips?status=DEGRADED` | ADMIN | Trips waiting for a better answer (routing was down) |
+| `POST /v1/trips/{tripId}/recompute` | ADMIN | Compute again. Safe to repeat: unchanged input gives back the very same run |
+| `POST /v1/trips/{tripId}/bill` | ADMIN | Put the current km on an invoice (`{"invoiceId": "INV-42"}`). Later changes become adjustments, never edits |
+| `GET /v1/trips/{tripId}/adjustments` | OPERATOR, ADMIN | Signed corrections since billing (`+1.80`, `-0.24`) and the total charged so far |
 | `GET / PUT /v1/tenant/config` | ADMIN | Your company's billing settings (no-show flag, accuracy, speed, office radius, max route). Every save is a new version |
 | `POST /v1/dev/tokens` | anyone, **local only** | A token for any tenant and role, for trying things out |
 
@@ -82,7 +85,7 @@ From segment S8 onwards, `docker compose up` also builds and starts the app itse
 
 ```
 core/   plain Java: the distance engine (no Spring, no database)
-app/    Spring Boot: REST API, JWT security + tenants, PostgreSQL (Flyway + Spring JDBC), routing layer; jobs to come
+app/    Spring Boot: REST API, JWT security + tenants, PostgreSQL (Flyway + Spring JDBC), routing layer, job queue + billing
 docs/   requirements tracker, assumptions, stack choice, roadmap, design note
 ```
 
@@ -95,6 +98,7 @@ docs/   requirements tracker, assumptions, stack choice, roadmap, design note
 | Anchor points | `EmployeeAnchorResolver` (actual → profile home → planned), `NoShowAnchorResolver` (behind a flag), `OfficeAnchorResolver` (400 m rule) | One test class per resolver |
 | Segment rules 0–6 | `ImpossibleSpeedRule`, `ShortGapRule`, `ParkedRule`, `RoutingUnavailableRule`, `RouteTooLongRule`, `RouteTooFastRule`, `RoutedRule` in `RuleSet.v1()` | `RuleSetTest` (every boundary: 69/70 s, 4.9/5.1 km/h, 100 km) |
 | The engine | `DistanceEngine.compute(evidence, routeLookup)` → `TripDistance` with a label on every segment | `DistanceEngineTest` (underpass 18.4 → 30.61 km, outage → DEGRADED, shuffled input → identical result) |
+| Jobs, recovery, billing | Compute queue in Postgres (`JobRepository`, `ComputeWorker`, lease + `SKIP LOCKED`), `RecoveryScanner`, `PinnedRoutes`, `ResultWriter` (run + signed adjustment in one transaction), `BillingService` | `JobsIntegrationTest` (crash, failure, 2 concurrency tests), `RecomputeBillingIntegrationTest` (R10, R11, R12, pinned routes), `PinnedRoutesTest`, `JobSettingsTest` |
 | Security + tenancy | JWT (`SecurityConfig`, `TenantClaimValidator`, `CurrentCaller`), roles per endpoint, employee own-trip rule, per-tenant `TenantSettings` (Flyway `V2`), `Problems` + `ApiExceptionHandler` + `TraceIdFilter` | `SecurityIntegrationTest` (12), `TenantConfigIntegrationTest` (5), `ErrorHandlingIntegrationTest` (9, incl. a log scan), `CallerTest`, `TenantSettingsTest` |
 | REST API + database | `TripController` → `EvidenceService` (idempotent, split uploads) → `DistanceService` (fingerprint, reuse or compute, save run) → JDBC repositories; Flyway `V1` schema; Swagger UI | `TripApiIntegrationTest` (15 tests on a real PostgreSQL), `EvidenceFingerprintTest` |
 | Routing layer | `RoutingGateway` (snap → `RouteCache` → `CircuitBreakingProvider` → `MockRoutingProvider`), per-trip `RoutingUsage`, settings in `application.yml` | `RouteKeyTest`, `RouteCacheTest`, `CircuitBreakingProviderTest`, `RoutingGatewayTest`, `RoutingWithEngineTest` (outage → DEGRADED, recovery → normal, 20 trips → 1 call) |

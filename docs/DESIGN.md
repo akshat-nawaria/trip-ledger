@@ -85,7 +85,7 @@ flowchart TB
 | `app.service` | `EvidenceService` (+ `EvidenceWriter`), `DistanceService`, `TripQueryService`; `AdjustmentService` in S7 | S5, S7 |
 | `app.persistence` | Spring JDBC repositories (`TripRepository`, `EvidenceRepository`, `IngestRequestRepository`, `RunRepository`) + row records; Flyway migrations in `resources/db/migration` | S5 |
 | `app.routing` | `RoutingProvider`, `MockRoutingProvider` (fault switch), `RouteKey` (grid snap), `RouteCache` (Caffeine), `CircuitBreakingProvider` (Resilience4j), `RoutingGateway` + `TripRouting` (per-trip usage), `RoutingConfig` | S4 |
-| `app.jobs` | `JobQueue`, `ComputeWorker`, `RecomputeScheduler` | S7 |
+| `app.jobs` | `ComputeWorker` (inline + background), `RecoveryScanner`, `JobScheduler`, `JobSettings`; queue in `persistence.JobRepository` | S7 |
 | `app.security` | JWT config, roles, tenant context | S6 |
 | `app.observability` | Metrics, log masking | S8 |
 
@@ -286,6 +286,7 @@ Rule 0 exists because a road is never shorter than the straight line: if even th
 | `GET` | `/v1/trips/{tripId}/breakdown` | OPERATOR, ADMIN | Every segment with its rule label |
 | `GET` | `/v1/trips/{tripId}/adjustments` | OPERATOR, ADMIN | Signed deltas after billing *(S7)* |
 | `POST` | `/v1/trips/{tripId}/recompute` | ADMIN | Force a recompute (idempotent) *(S7)* |
+| `POST` | `/v1/trips/{tripId}/bill` | ADMIN | Put the trip's current km on an invoice; freezes run + km *(S7)* |
 | `GET` | `/v1/trips?status=DEGRADED` | ADMIN | Recovery backlog |
 | `GET`, `PUT` | `/v1/tenant/config` | ADMIN | Billing settings; every save creates a new version *(S6)* |
 | `POST` | `/v1/dev/tokens` | anyone, local only | Token for any tenant / role, when `dev-tokens=true` *(S6)* |
@@ -366,6 +367,15 @@ engine asks for a gap ─▶ TripRouting (counts) ─▶ snap both ends to ~22 m
 ---
 
 ## 8. Failure handling
+
+### 8.0 As built (S7)
+
+- **Job queue in PostgreSQL** (`compute_job`, Flyway `V3`). An upload stores its evidence **and** a compute job in one transaction (outbox), so neither can exist without the other. At most one waiting job per trip (partial unique index): ten uploads in a row still mean one computation.
+- **Fast path:** right after the upload commits, the request claims that trip's job and runs it, so the response usually already carries the km. **Slow path:** a background worker (`JobScheduler`, every 2 s) claims due jobs with `FOR UPDATE SKIP LOCKED` and a **60 s lease**. A worker that dies leaves a `RUNNING` job whose lease runs out; any worker then takes it again. A trip is never handed to two workers at once.
+- **Failures:** a job that throws goes back to the queue with back-off (10 s, 30 s, 90 s, ... max 10 min) and is marked `FAILED` after 5 attempts. Only the exception type is stored — messages can carry data. A missing trip fails at once (retrying can't help).
+- **Recovery (R10):** every minute, if the routing circuit breaker is `CLOSED`, `DEGRADED` trips are re-queued (`RecoveryScanner`).
+- **Pinned routes:** every road distance a run used is stored (`run_route`); a later computation of the same trip replays them (`PinnedRoutes`) and only asks the provider about genuinely new gaps. A recompute during an outage therefore stays `COMPUTED`, and a map update can't move an old bill.
+- **Billing and adjustments (R12):** `POST /bill` freezes the trip's current run and km on an invoice (once; same invoice again is a no-op). Any later **COMPUTED** run that moves the billable km adds a signed `invoice_adjustment` line (`+1.80` / `-0.24`) in the same transaction — the invoice is never edited, and invoice + adjustments always equals the current km. A `DEGRADED` result never creates an adjustment: it is a guess, and the recompute after recovery settles it. Trip status (`RECEIVED/COMPUTED/DEGRADED`) and billing are kept as separate facts instead of one combined lifecycle.
 
 ### 8.1 Trip lifecycle
 
@@ -514,6 +524,7 @@ Full HMM map-matching of every ping · live distance during the trip · GPS-spoo
 | Date | Segment | Change |
 |---|---|---|
 | 2026-10-29 | S1 | First version |
+| 2026-10-29 | S7 | Jobs, recovery, pinned routes, billing + signed adjustments as described in 8.0. Upload still computes inline first (fast path) with the queue as the durable fallback, instead of queue-only; billing is separate columns on `trip` rather than BILLED/ADJUSTED states |
 | 2026-10-29 | S6 | Security as built: HS256 JWT (not RS256) for local runs, roles per endpoint, employee own-trip rule, tenant only from the token, 404 across tenants; versioned per-tenant settings (`V2`, `config_version` on runs); uniform problem+json with `code` + `traceId`; row-level security not built (trade-off) |
 | 2026-10-29 | S5 | Database + REST API built: Flyway `V1` schema keyed by (`tenant_id`, `trip_id`); Spring JDBC repositories (not JPA); idempotent, multi-part ingest; evidence fingerprint lets an unchanged trip reuse its saved run (no new routing calls); compute runs inline after upload until S7; tests use a real PostgreSQL (Compose locally, service container in CI) instead of Testcontainers |
 | 2026-10-29 | S4 | Routing layer built inside `app` (no separate mock-router service): grid snap to cell centres, Caffeine cache in front of a Resilience4j breaker, per-trip `RoutingUsage`. Geometry guard replaced by cell-centre snapping; batching dropped (A27); L2 Redis left optional |

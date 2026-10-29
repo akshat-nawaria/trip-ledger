@@ -43,4 +43,10 @@ Every value marked *configurable* lives in `application.yml` (and in the core `B
 | A37 | "Own trip" for an employee | The employee's ref appears in the trip's milestones or plan. Anything else is reported as 404 | — |
 | A38 | Tenant settings | Five values per company: no-show flag, max accuracy, max speed, office radius, max route. Each save is a new version; it applies from a trip's next computation and never edits saved runs | — |
 | A39 | Tenant isolation | Tenant comes only from the token; every query filters on it; a cross-tenant read is 404. PostgreSQL row-level security is not built (see DESIGN trade-offs) | — |
+| A40 | When km are computed (updates A34) | Straight after each upload (fast path), from a job queued in the same transaction; if that fails or a worker is busy with the trip, the background worker finishes it | Yes |
+| A41 | Job retries | Back-off 10 s, 30 s, 90 s, ... capped at 10 min; FAILED after 5 attempts; lease 60 s | Yes |
+| A42 | Recovery | Every minute, only while the routing breaker is CLOSED, up to 100 DEGRADED trips are re-queued | Yes |
+| A43 | Billing | A trip goes on one invoice, once; billing freezes its current run and km. A DEGRADED trip may be billed (provisional) | — |
+| A44 | Adjustments | Only a COMPUTED run creates one, and only when billable km (2 decimals) differ from invoice + earlier adjustments; signed, never edited | — |
+| A45 | Pinned routes | A gap with exactly the same start and end as one an earlier run routed reuses that answer; the newest wins | — |
 | A28 | Provider contract | A provider returns a real distance or throws `RoutingException`. Any other exception is a bug and fails loudly instead of quietly degrading a bill | — |
