@@ -1,0 +1,4 @@
+# Keep line endings consistent between Windows and Linux (CI)
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
