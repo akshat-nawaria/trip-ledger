@@ -1,14 +1,17 @@
 package com.tripledger.app.api;
 
+import com.tripledger.app.api.dto.BillingDtos.RecomputeResponse;
 import com.tripledger.app.api.dto.BreakdownResponse;
 import com.tripledger.app.api.dto.DistanceResponse;
 import com.tripledger.app.api.dto.EvidenceRequest;
 import com.tripledger.app.api.dto.IngestResponse;
 import com.tripledger.app.api.dto.TripSummary;
+import com.tripledger.app.persistence.TripRow;
 import com.tripledger.app.persistence.TripState;
 import com.tripledger.app.security.Caller;
 import com.tripledger.app.security.CurrentCaller;
 import com.tripledger.app.service.EvidenceService;
+import com.tripledger.app.service.RecomputeService;
 import com.tripledger.app.service.StoredEvidence;
 import com.tripledger.app.service.TripQueryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,11 +39,14 @@ public class TripController {
 
     private final EvidenceService evidence;
     private final TripQueryService queries;
+    private final RecomputeService recompute;
     private final CurrentCaller caller;
 
-    public TripController(EvidenceService evidence, TripQueryService queries, CurrentCaller caller) {
+    public TripController(EvidenceService evidence, TripQueryService queries, RecomputeService recompute,
+            CurrentCaller caller) {
         this.evidence = evidence;
         this.queries = queries;
+        this.recompute = recompute;
         this.caller = caller;
     }
 
@@ -73,6 +79,16 @@ public class TripController {
     @Operation(summary = "Every segment of the trip with the rule that measured it, plus cleaning and anchor details")
     public BreakdownResponse breakdown(@PathVariable String tripId) {
         return queries.breakdown(caller.get().tenant(), tripId);
+    }
+
+    @PostMapping("/{tripId}/recompute")
+    @Operation(summary = "Compute the trip again (admin)",
+            description = "Safe to repeat: unchanged evidence and rules give back the very same run, with no new routing calls. "
+                    + "If a background worker is busy with the trip right now, the status may still read RECEIVED.")
+    public ResponseEntity<RecomputeResponse> recompute(@PathVariable String tripId) {
+        TripRow trip = recompute.recompute(caller.get().tenant(), tripId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(new RecomputeResponse(tripId, trip.status().name(), trip.latestRunId()));
     }
 
     @GetMapping

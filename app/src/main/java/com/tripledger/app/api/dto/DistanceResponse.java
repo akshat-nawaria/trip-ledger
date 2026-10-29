@@ -19,7 +19,8 @@ public record DistanceResponse(
         UUID runId,
         Instant computedAt) {
 
-    @Schema(description = "What routing cost for this computation")
-    public record Routing(int requests, int cacheHits, int providerCalls, int unavailable) {
+    @Schema(description = "What routing cost for this computation. replayed = road distances reused from "
+            + "earlier runs of this trip (pinned), so they cost nothing and can't drift")
+    public record Routing(int requests, int cacheHits, int providerCalls, int unavailable, int replayed) {
     }
 }

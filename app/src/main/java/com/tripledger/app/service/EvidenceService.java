@@ -3,6 +3,7 @@ package com.tripledger.app.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tripledger.app.api.dto.EvidenceRequest;
+import com.tripledger.app.jobs.ComputeWorker;
 import com.tripledger.app.persistence.TripRepository;
 import com.tripledger.app.persistence.TripState;
 import java.security.MessageDigest;
@@ -12,25 +13,24 @@ import org.springframework.stereotype.Service;
 
 /**
  * What happens when a device uploads evidence:
- *   check the request -> store it (EvidenceWriter, one transaction) -> compute the km right away.
+ *   check the request -> store it + queue a compute job (EvidenceWriter, one transaction)
+ *   -> try to run that job right away, so the response usually already has the km.
  *
- * Computing straight after the upload keeps S5 simple and easy to demo. In S7 the compute moves to a
- * background job queue; the API stays exactly the same (clients read the km with GET /distance).
- *
- * If the compute itself fails, the evidence is already safely stored and the trip stays RECEIVED,
- * so nothing is lost - it just gets computed on the next upload (or by the S7 worker).
+ * "Usually": if the compute fails, or a background worker is busy with the same trip, the response
+ * just says RECEIVED. Nothing is lost - the job stays in the queue and the worker finishes it
+ * (with retries). Clients read the final km with GET /distance.
  */
 @Service
 public class EvidenceService {
 
     private final EvidenceWriter writer;
-    private final DistanceService distance;
+    private final ComputeWorker worker;
     private final TripRepository trips;
     private final ObjectMapper json;
 
-    public EvidenceService(EvidenceWriter writer, DistanceService distance, TripRepository trips, ObjectMapper json) {
+    public EvidenceService(EvidenceWriter writer, ComputeWorker worker, TripRepository trips, ObjectMapper json) {
         this.writer = writer;
-        this.distance = distance;
+        this.worker = worker;
         this.trips = trips;
         this.json = json;
     }
@@ -45,10 +45,11 @@ public class EvidenceService {
 
         StoredEvidence stored = writer.store(tenant, tripId, idempotencyKey, hash(request), request);
 
-        // a replay changed nothing, so there's nothing to compute - just report where the trip is
-        TripState status = stored.replayed()
-                ? trips.find(tenant, tripId).orElseThrow(() -> new TripNotFoundException(tripId)).status()
-                : distance.compute(tenant, tripId).status();
+        // a replay changed nothing and queued nothing - just report where the trip is
+        if (!stored.replayed()) {
+            worker.runNow(tenant, tripId);
+        }
+        TripState status = trips.find(tenant, tripId).orElseThrow(() -> new TripNotFoundException(tripId)).status();
         return new IngestResult(stored, status);
     }
 

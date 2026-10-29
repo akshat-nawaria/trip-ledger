@@ -53,7 +53,8 @@ public class TripQueryService {
         RunRow r = run.get();
         return new DistanceResponse(tripId, trip.status().name(), km(r.billableKm()), r.totalMm(), r.ruleVersion(),
                 r.configVersion(),
-                new DistanceResponse.Routing(r.routeRequests(), r.cacheHits(), r.providerCalls(), r.routingUnavailable()),
+                new DistanceResponse.Routing(r.routeRequests(), r.cacheHits(), r.providerCalls(), r.routingUnavailable(),
+                        r.routesReplayed()),
                 r.id(), r.createdAt());
     }
 

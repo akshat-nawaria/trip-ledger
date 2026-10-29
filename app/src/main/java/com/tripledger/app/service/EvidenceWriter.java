@@ -3,6 +3,7 @@ package com.tripledger.app.service;
 import com.tripledger.app.api.dto.EvidenceRequest;
 import com.tripledger.app.persistence.EvidenceRepository;
 import com.tripledger.app.persistence.IngestRequestRepository;
+import com.tripledger.app.persistence.JobRepository;
 import com.tripledger.app.persistence.TripRepository;
 import com.tripledger.app.persistence.TripRow;
 import com.tripledger.core.model.GeoPoint;
@@ -20,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
  *   3. Idempotency-Key: seen with the same body -> replay, seen with another body -> 409
  *   4. append the evidence (duplicates are silently skipped by the database)
  *   5. if anything new arrived, the km on file are stale -> status RECEIVED
+ *   6. queue a compute job - in this same transaction, so evidence and its job can never be split up
+ *      (if the app dies a millisecond after the commit, the job is still there for the worker)
  */
 @Service
 public class EvidenceWriter {
@@ -27,11 +30,14 @@ public class EvidenceWriter {
     private final TripRepository trips;
     private final EvidenceRepository evidence;
     private final IngestRequestRepository ingestRequests;
+    private final JobRepository jobs;
 
-    public EvidenceWriter(TripRepository trips, EvidenceRepository evidence, IngestRequestRepository ingestRequests) {
+    public EvidenceWriter(TripRepository trips, EvidenceRepository evidence, IngestRequestRepository ingestRequests,
+            JobRepository jobs) {
         this.trips = trips;
         this.evidence = evidence;
         this.ingestRequests = ingestRequests;
+        this.jobs = jobs;
     }
 
     @Transactional
@@ -65,6 +71,9 @@ public class EvidenceWriter {
         if (pingsNew + milestonesNew + stopsNew > 0) {
             trips.markReceived(tenant, tripId);
         }
+        // queued even when nothing was new: a DEGRADED trip or changed tenant settings still deserve a
+        // fresh look, and if nothing changed at all the fingerprint makes the job a cheap no-op
+        jobs.enqueue(tenant, tripId, JobRepository.Reason.UPLOAD);
         return new StoredEvidence(false, request.pings().size(), pingsNew, milestonesNew, stopsNew);
     }
 }

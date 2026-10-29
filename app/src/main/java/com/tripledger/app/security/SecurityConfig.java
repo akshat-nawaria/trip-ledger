@@ -48,6 +48,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/v1/trips/*/distance").hasAnyRole("EMPLOYEE", "OPERATOR", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/v1/trips/*/breakdown").hasAnyRole("OPERATOR", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/v1/trips").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/v1/trips/*/recompute", "/v1/trips/*/bill").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/v1/trips/*/adjustments").hasAnyRole("OPERATOR", "ADMIN")
                         .requestMatchers("/v1/tenant/config").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth

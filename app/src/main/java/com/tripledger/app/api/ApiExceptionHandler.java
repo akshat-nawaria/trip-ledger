@@ -1,5 +1,6 @@
 package com.tripledger.app.api;
 
+import com.tripledger.app.service.BillingConflictException;
 import com.tripledger.app.service.ConfigConflictException;
 import com.tripledger.app.service.EvidenceConflictException;
 import com.tripledger.app.service.InvalidRequestException;
@@ -61,6 +62,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ConfigConflictException.class)
     public ProblemDetail configConflict(ConfigConflictException e) {
         return problems.of(HttpStatus.CONFLICT, "CONFIG_CONFLICT", "Settings changed at the same time", e.getMessage());
+    }
+
+    @ExceptionHandler(BillingConflictException.class)
+    public ProblemDetail billingConflict(BillingConflictException e) {
+        return problems.of(HttpStatus.CONFLICT, "BILLING_CONFLICT", "Cannot bill this trip", e.getMessage());
     }
 
     @ExceptionHandler(InvalidRequestException.class)

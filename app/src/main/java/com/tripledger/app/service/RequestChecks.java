@@ -9,6 +9,7 @@ public final class RequestChecks {
 
     // letters, digits, dash, underscore. Keeps ids safe to log and to put in URLs.
     private static final Pattern TRIP_ID = Pattern.compile("[A-Za-z0-9_-]{1,64}");
+    private static final Pattern INVOICE_ID = Pattern.compile("[A-Za-z0-9_/-]{1,64}");
     private static final int MAX_KEY_LENGTH = 128;
 
     // no cab shift is longer than this; a bigger window is almost certainly a client bug, and it
@@ -28,6 +29,13 @@ public final class RequestChecks {
     public static void tenantId(String tenant) {
         if (tenant == null || !TRIP_ID.matcher(tenant).matches()) {
             throw new InvalidRequestException("Tenant id must be 1-64 characters: letters, digits, '-' or '_'");
+        }
+    }
+
+    // invoice numbers come from the client's billing system; same safe-character rule, a bit longer
+    public static void invoiceId(String invoiceId) {
+        if (invoiceId == null || !INVOICE_ID.matcher(invoiceId).matches()) {
+            throw new InvalidRequestException("Invoice id must be 1-64 characters: letters, digits, '-', '_' or '/'");
         }
     }
 

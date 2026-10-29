@@ -9,6 +9,7 @@ import com.tripledger.app.persistence.TenantSettings;
 import com.tripledger.app.persistence.TripRepository;
 import com.tripledger.app.persistence.TripRow;
 import com.tripledger.app.persistence.TripState;
+import com.tripledger.app.routing.PinnedRoutes;
 import com.tripledger.app.routing.RoutingGateway;
 import com.tripledger.app.routing.TripRouting;
 import com.tripledger.core.EngineInfo;
@@ -31,9 +32,12 @@ import org.springframework.stereotype.Service;
  * The settings are part of the fingerprint, so after a tenant changes them the next upload of a
  * trip is recomputed under the new settings instead of reusing the old answer.
  *
+ * Road distances an earlier run of the trip already paid for are replayed (PinnedRoutes), so a
+ * recompute only asks the provider about gaps that are actually new.
+ *
  * Note there's no transaction around the engine on purpose: it may wait on the routing provider,
  * and holding a DB transaction open while waiting on the network is how you run out of connections.
- * The save at the end is its own short transaction (RunRepository.save).
+ * The save at the end is its own short transaction (ResultWriter.save).
  */
 @Service
 public class DistanceService {
@@ -41,15 +45,17 @@ public class DistanceService {
     private final TripRepository trips;
     private final EvidenceRepository evidence;
     private final RunRepository runs;
+    private final ResultWriter results;
     private final TenantConfigService tenantConfig;
     private final RoutingGateway routing;
     private final ObjectMapper json;
 
-    public DistanceService(TripRepository trips, EvidenceRepository evidence, RunRepository runs,
+    public DistanceService(TripRepository trips, EvidenceRepository evidence, RunRepository runs, ResultWriter results,
             TenantConfigService tenantConfig, RoutingGateway routing, ObjectMapper json) {
         this.trips = trips;
         this.evidence = evidence;
         this.runs = runs;
+        this.results = results;
         this.tenantConfig = tenantConfig;
         this.routing = routing;
         this.json = json;
@@ -75,11 +81,12 @@ public class DistanceService {
         }
 
         TripRouting tripRouting = routing.newTrip();
+        PinnedRoutes lookup = new PinnedRoutes(runs.pinnedRoutes(tenant, tripId), tripRouting);
         // the engine holds no state, so a fresh one per computation (with this tenant's rules) costs nothing
-        TripDistance result = new DistanceEngine(rules).compute(tripEvidence, tripRouting);
+        TripDistance result = new DistanceEngine(rules).compute(tripEvidence, lookup);
         UUID runId = UUID.randomUUID();
         try {
-            runs.save(tenant, runId, inputHash, settings.version(), result, tripRouting.usage(),
+            results.save(tenant, runId, inputHash, settings.version(), result, tripRouting.usage(), lookup.replayed(),
                     toJson(RunExplanation.cleaningOf(result)), toJson(RunExplanation.anchorsOf(result)));
         } catch (DuplicateKeyException e) {
             // two requests computed the same trip at the same moment and the other one saved first.
