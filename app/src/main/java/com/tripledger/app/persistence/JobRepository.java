@@ -108,11 +108,15 @@ public class JobRepository {
 
     // trips that deserve another go once routing works again: DEGRADED ones, plus any RECEIVED trip that
     // somehow never got a job (e.g. evidence stored before the job queue existed). Returns how many were queued.
+    // Trips that already have a job waiting or running are skipped BEFORE the limit is applied - otherwise a
+    // few old trips with retries pending could fill a small trial batch every time and nothing new would run.
     public int enqueueRecovery(int limit) {
         return jdbc.update("""
                 INSERT INTO compute_job (tenant_id, trip_id, reason)
                 SELECT t.tenant_id, t.trip_id, 'RECOVERY' FROM trip t
-                WHERE t.status = 'DEGRADED'
+                WHERE (t.status = 'DEGRADED' AND NOT EXISTS (SELECT 1 FROM compute_job j
+                                                             WHERE j.tenant_id = t.tenant_id AND j.trip_id = t.trip_id
+                                                               AND j.status IN ('PENDING', 'RUNNING')))
                    OR (t.status = 'RECEIVED' AND NOT EXISTS (SELECT 1 FROM compute_job j
                                                              WHERE j.tenant_id = t.tenant_id AND j.trip_id = t.trip_id))
                 ORDER BY t.updated_at

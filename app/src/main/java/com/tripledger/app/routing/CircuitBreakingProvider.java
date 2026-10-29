@@ -15,6 +15,11 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
  * After the wait it lets a few trial calls through. If they work it closes again, if not it
  * stays open for another round.
  *
+ * The move from OPEN to HALF_OPEN happens on a timer, by itself. Resilience4j's default is to wait
+ * for the next call instead - but on a quiet night there may be no next call, and the recovery
+ * scan (which waits for the breaker) would then never bring DEGRADED trips back. The S9 benchmark
+ * caught that one.
+ *
  * Settings come from application.yml (tripledger.routing.breaker). Defaults: look at the last
  * 10 calls, need at least 5, open at 50% failures, stay open 30 s, then allow 3 trial calls.
  */
@@ -36,6 +41,7 @@ public final class CircuitBreakingProvider implements RoutingProvider {
                 .failureRateThreshold(settings.failureRatePercent())
                 .waitDurationInOpenState(settings.waitInOpen())
                 .permittedNumberOfCallsInHalfOpenState(settings.halfOpenCalls())
+                .automaticTransitionFromOpenToHalfOpenEnabled(true)
                 .build();
         return CircuitBreaker.of(name, config);
     }

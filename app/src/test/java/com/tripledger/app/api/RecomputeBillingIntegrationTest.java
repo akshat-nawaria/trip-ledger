@@ -13,6 +13,7 @@ import com.tripledger.app.api.dto.EvidenceRequest;
 import com.tripledger.app.jobs.RecoveryScanner;
 import com.tripledger.app.routing.MockRoutingProvider;
 import com.tripledger.app.routing.RoutingProvider;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -31,6 +32,9 @@ class RecomputeBillingIntegrationTest extends ApiTestBase {
 
     @Autowired
     private RecoveryScanner recovery;
+
+    @Autowired
+    private CircuitBreaker routingCircuitBreaker;
 
     // ---- R11 -------------------------------------------------------------------------------------------
 
@@ -121,6 +125,43 @@ class RecomputeBillingIntegrationTest extends ApiTestBase {
         // the road (x1.3) is shorter than the straight-line guess (x1.4), so the correction is negative
         assertThat(adj.get("adjustments").get(0).get("deltaKm").asText().startsWith("-")).isTrue();
         assertThat(adj.get("chargedKm").asText()).isEqualTo(now.get("billableKm").asText());
+    }
+
+    // ---- R10 on a quiet night (bug found by the S9 benchmark) ------------------------------------------
+
+    @Test
+    void degradedTripsComeBackAfterAnOutageEvenWhenNothingNewIsUploaded() throws Exception {
+        MockRoutingProvider mock = (MockRoutingProvider) routingProvider;
+        String tripId = newTripId();
+        try {
+            mock.setDown(true);
+            upload(tripId, newKey(), TestEvidence.trip().all())
+                    .andExpect(jsonPath("$.status").value("DEGRADED"));
+            routingCircuitBreaker.transitionToOpenState();   // the outage was long enough to open it
+            mock.setDown(false);                              // map service is back...
+
+            assertThat(recovery.scanOnce()).isEqualTo(0);     // ...but while OPEN we leave it alone
+
+            routingCircuitBreaker.transitionToHalfOpenState(); // what the 30 s timer now does by itself
+            int firstTrialBatch = recovery.scanOnce();
+            assertThat(firstTrialBatch).isBetween(1, 3);       // only as many trips as trial calls allowed
+
+            // no uploads at all from here on: the recovery scan alone has to finish the job
+            for (int round = 0; round < 20 && !"COMPUTED".equals(statusOf(tripId)); round++) {
+                drainJobs();
+                recovery.scanOnce();
+            }
+            drainJobs();
+
+            assertThat(statusOf(tripId)).isEqualTo("COMPUTED");
+        } finally {
+            mock.setDown(false);
+            routingCircuitBreaker.reset(); // shared bean - leave it CLOSED for the next test
+        }
+    }
+
+    private String statusOf(String tripId) throws Exception {
+        return getJson("/v1/trips/{id}/distance", tripId).get("status").asText();
     }
 
     // ---- pinned routes -------------------------------------------------------------------------------
