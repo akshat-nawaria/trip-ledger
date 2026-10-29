@@ -13,3 +13,23 @@ management:
   endpoint:
     health:
       show-details: never
+
+tripledger:
+  routing:
+    # which map service to ask for road distances. Only "mock" exists for now.
+    provider: mock
+    # grid size for the route cache, in micro-degrees. 200 = 0.0002 deg, roughly a 22 m square
+    # around Bengaluru. Gaps that start and end in the same cells share one cached route.
+    cell-micro-degrees: 200
+    cache:
+      max-entries: 100000
+      # roads don't change every day; a week keeps the hit rate high without going stale
+      time-to-live: 7d
+    breaker:
+      window-size: 10           # judge the provider on its last 10 calls
+      minimum-calls: 5          # ...but only once it has had at least 5
+      failure-rate-percent: 50  # half of them failing = open the circuit
+      wait-in-open: 30s         # stop calling for 30 s
+      half-open-calls: 3        # then let 3 trial calls through
+    mock:
+      road-factor: 1.3          # mock "road" = straight line x 1.3
