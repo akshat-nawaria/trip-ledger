@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tripledger.app.api.dto.BreakdownResponse;
 import com.tripledger.app.api.dto.DistanceResponse;
 import com.tripledger.app.api.dto.TripSummary;
+import com.tripledger.app.persistence.EvidenceRepository;
 import com.tripledger.app.persistence.RunRepository;
 import com.tripledger.app.persistence.RunRow;
 import com.tripledger.app.persistence.SegmentRow;
@@ -28,22 +29,30 @@ public class TripQueryService {
 
     private final TripRepository trips;
     private final RunRepository runs;
+    private final EvidenceRepository evidence;
     private final ObjectMapper json;
 
-    public TripQueryService(TripRepository trips, RunRepository runs, ObjectMapper json) {
+    public TripQueryService(TripRepository trips, RunRepository runs, EvidenceRepository evidence, ObjectMapper json) {
         this.trips = trips;
         this.runs = runs;
+        this.evidence = evidence;
         this.json = json;
     }
 
-    public DistanceResponse distance(String tenant, String tripId) {
+    // onlyForEmployee: set when the caller is a plain employee. A trip they didn't ride in gets the
+    // same 404 as a trip that doesn't exist - we don't even confirm it's there.
+    public DistanceResponse distance(String tenant, String tripId, Optional<String> onlyForEmployee) {
         TripRow trip = findTrip(tenant, tripId);
+        if (onlyForEmployee.isPresent() && !evidence.involvesEmployee(tenant, tripId, onlyForEmployee.get())) {
+            throw new TripNotFoundException(tripId);
+        }
         Optional<RunRow> run = runs.latest(tenant, tripId);
         if (run.isEmpty()) {
-            return new DistanceResponse(tripId, trip.status().name(), null, null, null, null, null, null);
+            return new DistanceResponse(tripId, trip.status().name(), null, null, null, null, null, null, null);
         }
         RunRow r = run.get();
         return new DistanceResponse(tripId, trip.status().name(), km(r.billableKm()), r.totalMm(), r.ruleVersion(),
+                r.configVersion(),
                 new DistanceResponse.Routing(r.routeRequests(), r.cacheHits(), r.providerCalls(), r.routingUnavailable()),
                 r.id(), r.createdAt());
     }

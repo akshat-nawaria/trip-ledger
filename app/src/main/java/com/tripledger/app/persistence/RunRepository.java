@@ -28,7 +28,7 @@ public class RunRepository {
 
     private static final String RUN_COLUMNS = """
             r.id, r.trip_id, r.input_hash, r.rule_version, r.status, r.total_mm, r.billable_km,
-            r.route_requests, r.cache_hits, r.provider_calls, r.routing_unavailable,
+            r.route_requests, r.cache_hits, r.provider_calls, r.routing_unavailable, r.config_version,
             r.cleaning_json::text AS cleaning_json, r.anchors_json::text AS anchors_json, r.created_at
             """;
 
@@ -42,17 +42,17 @@ public class RunRepository {
     // If an identical good run already exists, the unique index throws DuplicateKeyException and
     // nothing is written - the caller treats that as "someone else already did this".
     @Transactional
-    public void save(String tenant, UUID runId, String inputHash, TripDistance result, RoutingUsage usage,
+    public void save(String tenant, UUID runId, String inputHash, int configVersion, TripDistance result, RoutingUsage usage,
             String cleaningJson, String anchorsJson) {
         jdbc.update("""
                 INSERT INTO computation_run (id, tenant_id, trip_id, input_hash, rule_version, status,
                     total_mm, billable_km, route_requests, cache_hits, provider_calls, routing_unavailable,
-                    cleaning_json, anchors_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), CAST(? AS jsonb))
+                    cleaning_json, anchors_json, config_version)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), CAST(? AS jsonb), ?)
                 """,
                 runId, tenant, result.tripId(), inputHash, result.ruleSetVersion(), result.status().name(),
                 result.total().millimetres(), result.billableKm(), usage.requests(), usage.cacheHits(),
-                usage.providerCalls(), usage.unavailable(), cleaningJson, anchorsJson);
+                usage.providerCalls(), usage.unavailable(), cleaningJson, anchorsJson, configVersion);
 
         List<Segment> segments = result.segments();
         if (!segments.isEmpty()) {
@@ -125,6 +125,7 @@ public class RunRepository {
                 rs.getInt("cache_hits"),
                 rs.getInt("provider_calls"),
                 rs.getInt("routing_unavailable"),
+                rs.getInt("config_version"),
                 rs.getString("cleaning_json"),
                 rs.getString("anchors_json"),
                 Sql.instant(rs, "created_at"));

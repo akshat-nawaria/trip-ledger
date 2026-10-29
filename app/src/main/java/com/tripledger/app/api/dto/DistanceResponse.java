@@ -13,6 +13,8 @@ public record DistanceResponse(
         String billableKm,
         @Schema(description = "exact total in millimetres") Long totalMm,
         String ruleVersion,
+        @Schema(description = "which version of the tenant's billing settings was used (0 = case-study defaults)")
+        Integer configVersion,
         Routing routing,
         UUID runId,
         Instant computedAt) {

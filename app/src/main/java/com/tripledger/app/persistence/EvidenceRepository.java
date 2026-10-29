@@ -132,6 +132,18 @@ public class EvidenceRepository {
                 tenant, tripId);
     }
 
+    // true if the employee shows up anywhere in the trip (a pickup / drop / no-show, or the plan).
+    // That's what "own trip" means for an employee looking at their km.
+    public boolean involvesEmployee(String tenant, String tripId, String employeeRef) {
+        Boolean found = jdbc.queryForObject("""
+                SELECT EXISTS (SELECT 1 FROM milestone
+                               WHERE tenant_id = ? AND trip_id = ? AND employee_ref = ?)
+                    OR EXISTS (SELECT 1 FROM planned_stop
+                               WHERE tenant_id = ? AND trip_id = ? AND employee_ref = ?)
+                """, Boolean.class, tenant, tripId, employeeRef, tenant, tripId, employeeRef);
+        return Boolean.TRUE.equals(found);
+    }
+
     // a point is only usable if both halves are there
     private static GeoPoint point(ResultSet rs) throws SQLException {
         Long lat = Sql.nullableLong(rs, "lat_e6");

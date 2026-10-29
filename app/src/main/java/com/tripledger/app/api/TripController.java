@@ -6,7 +6,8 @@ import com.tripledger.app.api.dto.EvidenceRequest;
 import com.tripledger.app.api.dto.IngestResponse;
 import com.tripledger.app.api.dto.TripSummary;
 import com.tripledger.app.persistence.TripState;
-import com.tripledger.app.security.CurrentTenant;
+import com.tripledger.app.security.Caller;
+import com.tripledger.app.security.CurrentCaller;
 import com.tripledger.app.service.EvidenceService;
 import com.tripledger.app.service.StoredEvidence;
 import com.tripledger.app.service.TripQueryService;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 // thin on purpose: read the request, call a service, shape the response. No business logic in here.
+// Who may call which endpoint is decided in SecurityConfig; the tenant always comes from the caller's token.
 @RestController
 @RequestMapping("/v1/trips")
 @Tag(name = "Trips", description = "Upload trip evidence, read the billable km and its explanation")
@@ -34,12 +36,12 @@ public class TripController {
 
     private final EvidenceService evidence;
     private final TripQueryService queries;
-    private final CurrentTenant tenant;
+    private final CurrentCaller caller;
 
-    public TripController(EvidenceService evidence, TripQueryService queries, CurrentTenant tenant) {
+    public TripController(EvidenceService evidence, TripQueryService queries, CurrentCaller caller) {
         this.evidence = evidence;
         this.queries = queries;
-        this.tenant = tenant;
+        this.caller = caller;
     }
 
     @PostMapping("/{tripId}/evidence")
@@ -51,7 +53,7 @@ public class TripController {
             @Parameter(description = "Unique per upload, e.g. a UUID. Re-use it only when retrying the exact same upload.")
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody EvidenceRequest request) {
-        EvidenceService.IngestResult result = evidence.ingest(tenant.id(), tripId, idempotencyKey, request);
+        EvidenceService.IngestResult result = evidence.ingest(caller.get().tenant(), tripId, idempotencyKey, request);
         StoredEvidence stored = result.stored();
         IngestResponse body = new IngestResponse(tripId, result.status().name(), stored.replayed(),
                 stored.pingsReceived(), stored.pingsNew(), stored.pingsDuplicate(),
@@ -60,15 +62,17 @@ public class TripController {
     }
 
     @GetMapping("/{tripId}/distance")
-    @Operation(summary = "Billable km for a trip, with status, rule version and routing calls used")
+    @Operation(summary = "Billable km for a trip, with status, rule version and routing calls used",
+            description = "Employees only see trips they rode in; any other trip is reported as not found.")
     public DistanceResponse distance(@PathVariable String tripId) {
-        return queries.distance(tenant.id(), tripId);
+        Caller me = caller.get();
+        return queries.distance(me.tenant(), tripId, me.onlyTripsOf());
     }
 
     @GetMapping("/{tripId}/breakdown")
     @Operation(summary = "Every segment of the trip with the rule that measured it, plus cleaning and anchor details")
     public BreakdownResponse breakdown(@PathVariable String tripId) {
-        return queries.breakdown(tenant.id(), tripId);
+        return queries.breakdown(caller.get().tenant(), tripId);
     }
 
     @GetMapping
@@ -76,6 +80,6 @@ public class TripController {
     public List<TripSummary> list(
             @RequestParam(required = false) TripState status,
             @RequestParam(defaultValue = "50") int limit) {
-        return queries.list(tenant.id(), status, limit);
+        return queries.list(caller.get().tenant(), status, limit);
     }
 }

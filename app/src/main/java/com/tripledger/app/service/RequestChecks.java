@@ -24,6 +24,13 @@ public final class RequestChecks {
         }
     }
 
+    // tenant ids follow the same safe-character rule as trip ids
+    public static void tenantId(String tenant) {
+        if (tenant == null || !TRIP_ID.matcher(tenant).matches()) {
+            throw new InvalidRequestException("Tenant id must be 1-64 characters: letters, digits, '-' or '_'");
+        }
+    }
+
     public static void idempotencyKey(String key) {
         if (key == null || key.isBlank() || key.length() > MAX_KEY_LENGTH) {
             throw new InvalidRequestException("Idempotency-Key header must be 1-" + MAX_KEY_LENGTH + " characters");

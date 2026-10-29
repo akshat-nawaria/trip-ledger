@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tripledger.app.persistence.EvidenceRepository;
 import com.tripledger.app.persistence.RunRepository;
 import com.tripledger.app.persistence.RunRow;
+import com.tripledger.app.persistence.TenantSettings;
 import com.tripledger.app.persistence.TripRepository;
 import com.tripledger.app.persistence.TripRow;
 import com.tripledger.app.persistence.TripState;
@@ -24,8 +25,11 @@ import org.springframework.stereotype.Service;
 /**
  * Turns everything stored for a trip into km, and saves the result as a new run.
  *
- *   load evidence -> fingerprint it -> already have a good run for exactly this? reuse it
- *                                   -> otherwise run the engine (with routing) and save
+ *   load evidence + the tenant's settings -> fingerprint both -> already have a good run for exactly this? reuse it
+ *                                                              -> otherwise run the engine (with routing) and save
+ *
+ * The settings are part of the fingerprint, so after a tenant changes them the next upload of a
+ * trip is recomputed under the new settings instead of reusing the old answer.
  *
  * Note there's no transaction around the engine on purpose: it may wait on the routing provider,
  * and holding a DB transaction open while waiting on the network is how you run out of connections.
@@ -37,18 +41,16 @@ public class DistanceService {
     private final TripRepository trips;
     private final EvidenceRepository evidence;
     private final RunRepository runs;
-    private final DistanceEngine engine;
-    private final BillingRules rules;
+    private final TenantConfigService tenantConfig;
     private final RoutingGateway routing;
     private final ObjectMapper json;
 
     public DistanceService(TripRepository trips, EvidenceRepository evidence, RunRepository runs,
-            DistanceEngine engine, BillingRules rules, RoutingGateway routing, ObjectMapper json) {
+            TenantConfigService tenantConfig, RoutingGateway routing, ObjectMapper json) {
         this.trips = trips;
         this.evidence = evidence;
         this.runs = runs;
-        this.engine = engine;
-        this.rules = rules;
+        this.tenantConfig = tenantConfig;
         this.routing = routing;
         this.json = json;
     }
@@ -61,6 +63,8 @@ public class DistanceService {
         TripEvidence tripEvidence = new TripEvidence(tripId, trip.tripType(), trip.windowStart(), trip.windowEnd(),
                 trip.office(), evidence.pings(tenant, tripId), evidence.milestones(tenant, tripId),
                 evidence.plannedStops(tenant, tripId));
+        TenantSettings settings = tenantConfig.current(tenant);
+        BillingRules rules = settings.toRules();
         String inputHash = EvidenceFingerprint.of(tripEvidence, rules, EngineInfo.RULE_SET_VERSION);
 
         // same evidence, same rules, and we already got a clean answer -> it can't come out different,
@@ -71,10 +75,11 @@ public class DistanceService {
         }
 
         TripRouting tripRouting = routing.newTrip();
-        TripDistance result = engine.compute(tripEvidence, tripRouting);
+        // the engine holds no state, so a fresh one per computation (with this tenant's rules) costs nothing
+        TripDistance result = new DistanceEngine(rules).compute(tripEvidence, tripRouting);
         UUID runId = UUID.randomUUID();
         try {
-            runs.save(tenant, runId, inputHash, result, tripRouting.usage(),
+            runs.save(tenant, runId, inputHash, settings.version(), result, tripRouting.usage(),
                     toJson(RunExplanation.cleaningOf(result)), toJson(RunExplanation.anchorsOf(result)));
         } catch (DuplicateKeyException e) {
             // two requests computed the same trip at the same moment and the other one saved first.
