@@ -81,6 +81,21 @@ final class TestEvidence {
         return request(afterGap);
     }
 
+    // the whole trip, plus a drop of one employee at the 100th ping (so that employee "rode" in it)
+    EvidenceRequest withDropOf(String employeeRef) {
+        EvidenceRequest base = all();
+        EvidenceRequest.PingIn at = beforeGap.get(100);
+        List<EvidenceRequest.MilestoneIn> milestones = new ArrayList<>(base.milestones());
+        milestones.add(new EvidenceRequest.MilestoneIn(employeeRef, MilestoneType.DROP, at.lat(), at.lon(), at.ts()));
+        return new EvidenceRequest(base.tripType(), base.windowStart(), base.windowEnd(), base.plannedOffice(),
+                base.pings(), milestones, base.plannedStops());
+    }
+
+    // latitude of the drop point above, as it would appear in JSON - the log test looks for it
+    String dropLatitude() {
+        return String.valueOf(beforeGap.get(100).lat());
+    }
+
     // same trip, but the window ends an hour later - must clash with an earlier upload
     EvidenceRequest withDifferentWindow() {
         EvidenceRequest base = all();

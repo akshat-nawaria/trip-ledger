@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tripledger.app.api.dto.EvidenceRequest;
 import com.tripledger.app.routing.MockRoutingProvider;
 import com.tripledger.app.routing.RoutingProvider;
@@ -19,24 +18,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 
 /**
- * The whole app, end to end, against the real Postgres from docker-compose (run
- * "docker compose up -d" first; CI starts its own). Every test uses a fresh trip id,
- * so tests never see each other's data and the database can be reused between runs.
+ * The trip API end to end, signed in as an operator / admin of this test's own tenant
+ * (see ApiTestBase), against the real Postgres from docker-compose ("docker compose up -d" first;
+ * CI starts its own).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-class TripApiIntegrationTest {
-
-    @Autowired
-    private MockMvc mvc;
-
-    @Autowired
-    private ObjectMapper json;
+class TripApiIntegrationTest extends ApiTestBase {
 
     @Autowired
     private RoutingProvider routingProvider;
@@ -183,15 +175,16 @@ class TripApiIntegrationTest {
 
     @Test
     void unknownTripIs404() throws Exception {
-        mvc.perform(get("/v1/trips/{id}/distance", newTripId()))
+        getAs(admin(), "/v1/trips/{id}/distance", newTripId())
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
-        mvc.perform(get("/v1/trips/{id}/breakdown", newTripId())).andExpect(status().isNotFound());
+        getAs(admin(), "/v1/trips/{id}/breakdown", newTripId()).andExpect(status().isNotFound());
     }
 
     @Test
     void missingIdempotencyKeyIs400() throws Exception {
         mvc.perform(post("/v1/trips/{id}/evidence", newTripId())
+                        .header(HttpHeaders.AUTHORIZATION, operator())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(TestEvidence.trip().all())))
                 .andExpect(status().isBadRequest());
@@ -224,8 +217,10 @@ class TripApiIntegrationTest {
 
     @Test
     void listLimitOutOfRangeIs400() throws Exception {
-        mvc.perform(get("/v1/trips").param("limit", "0")).andExpect(status().isBadRequest());
-        mvc.perform(get("/v1/trips").param("status", "NOT_A_STATUS")).andExpect(status().isBadRequest());
+        mvc.perform(get("/v1/trips").param("limit", "0").header(HttpHeaders.AUTHORIZATION, admin()))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/v1/trips").param("status", "NOT_A_STATUS").header(HttpHeaders.AUTHORIZATION, admin()))
+                .andExpect(status().isBadRequest());
     }
 
     // ---- docs ------------------------------------------------------------------------------
@@ -242,22 +237,9 @@ class TripApiIntegrationTest {
 
     // ---- helpers ---------------------------------------------------------------------------
 
-    private ResultActions upload(String tripId, String key, EvidenceRequest body) throws Exception {
-        return mvc.perform(post("/v1/trips/{id}/evidence", tripId)
-                .header("Idempotency-Key", key)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json.writeValueAsString(body)));
-    }
-
-    private JsonNode getJson(String url, Object... vars) throws Exception {
-        String body = mvc.perform(get(url, vars))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        return json.readTree(body);
-    }
-
     private boolean listContains(String status, String tripId) throws Exception {
-        JsonNode trips = json.readTree(mvc.perform(get("/v1/trips").param("status", status).param("limit", "200"))
+        JsonNode trips = json.readTree(mvc.perform(get("/v1/trips").param("status", status).param("limit", "200")
+                        .header(HttpHeaders.AUTHORIZATION, admin()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
         for (JsonNode trip : trips) {
