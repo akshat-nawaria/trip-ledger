@@ -7,7 +7,7 @@
 | S2 | Core domain & cleaning filters | 4, 5 | Done |
 | S3 | Anchors & segment rule engine | 4, 5 | Done |
 | S4 | Routing layer: cache, breaker, mock provider | 4, 5 | Done |
-| S5 | Database & REST APIs | 4, 5 | Pending |
+| S5 | Database & REST APIs | 4, 5 | Done |
 | S6 | Security, tenancy & error handling | 4, 5 | Pending |
 | S7 | Recompute, jobs & signed adjustments | 4, 5 | Pending |
 | S8 | Monitoring & demo UI | 4, 8 | Pending |

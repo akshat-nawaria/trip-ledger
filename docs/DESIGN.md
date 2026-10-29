@@ -67,7 +67,7 @@ flowchart TB
 | Module | Purpose | Depends on Spring? |
 |---|---|---|
 | `core` | Domain, cleaning filters, anchor resolvers, segment rules, engine | **No** (a test enforces this) |
-| `app` | REST controllers, services, JPA repositories, security, routing adapters, jobs, metrics | Yes |
+| `app` | REST controllers, services, JDBC repositories, security, routing adapters, jobs, metrics | Yes |
 | `bench` *(S9)* | Seeded data generator and 10,000-trip benchmark runner | No |
 
 ### 3.2 Packages
@@ -82,8 +82,8 @@ flowchart TB
 | `core.rules` | `SegmentRule` interface; `AbstractAerialRule`; rules 0–6; `RuleSet` (ordered, versioned) | S3 |
 | `core.engine` | `DistanceEngine`, `RouteLookup` port (implemented in `app`) | S3 |
 | `app.api` | Controllers, request/response DTOs, `@RestControllerAdvice` | S5, S6 |
-| `app.service` | `EvidenceService`, `DistanceService`, `AdjustmentService` | S5, S7 |
-| `app.persistence` | JPA entities + Spring Data repositories, Flyway migrations | S5 |
+| `app.service` | `EvidenceService` (+ `EvidenceWriter`), `DistanceService`, `TripQueryService`; `AdjustmentService` in S7 | S5, S7 |
+| `app.persistence` | Spring JDBC repositories (`TripRepository`, `EvidenceRepository`, `IngestRequestRepository`, `RunRepository`) + row records; Flyway migrations in `resources/db/migration` | S5 |
 | `app.routing` | `RoutingProvider`, `MockRoutingProvider` (fault switch), `RouteKey` (grid snap), `RouteCache` (Caffeine), `CircuitBreakingProvider` (Resilience4j), `RoutingGateway` + `TripRouting` (per-trip usage), `RoutingConfig` | S4 |
 | `app.jobs` | `JobQueue`, `ComputeWorker`, `RecomputeScheduler` | S7 |
 | `app.security` | JWT config, roles, tenant context | S6 |
@@ -104,6 +104,8 @@ flowchart TB
 ---
 
 ## 4. Data model
+
+> **As built in S5** (`V1__trips_evidence_and_runs.sql`): a trip is keyed by `(tenant_id, trip_id)` — the id the client already uses — instead of a surrogate UUID. Extra tables: `ingest_request` (Idempotency-Key + body hash) and `run_segment` (the diagram's SEGMENT). `computation_run` also stores per-run routing usage and the cleaning/anchor explanation as JSONB. `ROUTE_EVIDENCE`, `INVOICE_ADJUSTMENT`, `TENANT_CONFIG` and `job` arrive with S6/S7.
 
 All coordinates are stored as **integer micro-degrees** (`lat_e6`, `lon_e6`) so equality and hashing are exact. All distances are **integer millimetres** (`*_mm`). Every table carries `tenant_id`, protected by PostgreSQL row-level security (S6).
 
@@ -208,7 +210,8 @@ Plus a `job` table (id, type, payload, `lease_until`, attempts) used as a work q
 |---|---|
 | `ping` unique on (`trip_id`, `device_ts`, `lat_e6`, `lon_e6`) | The same ping stored twice |
 | Ingest `Idempotency-Key` stored per request | A retried upload being processed twice |
-| `computation_run` unique on (`trip_id`, `input_hash`, `rule_version`) | Two identical computations |
+| `computation_run` unique on (`tenant_id`, `trip_id`, `input_hash`, `rule_version`) **where status = COMPUTED** | Two identical good computations (a DEGRADED run may repeat: same input, better answer once routing is back) |
+| `milestone` / `planned_stop` unique on (`trip`, `dedupe_key`) | The same event stored twice even when it has missing fields |
 | `trip.version` optimistic lock | Two recomputes overwriting each other |
 
 ---
@@ -281,10 +284,10 @@ Rule 0 exists because a road is never shorter than the straight line: if even th
 | `POST` | `/v1/trips/{tripId}/evidence` | OPERATOR (device) | Ingest pings, milestones, plan. Requires `Idempotency-Key` |
 | `GET` | `/v1/trips/{tripId}/distance` | EMPLOYEE (own), OPERATOR, ADMIN | Total km, status, rule version, routing calls |
 | `GET` | `/v1/trips/{tripId}/breakdown` | OPERATOR, ADMIN | Every segment with its rule label |
-| `GET` | `/v1/trips/{tripId}/adjustments` | OPERATOR, ADMIN | Signed deltas after billing |
-| `POST` | `/v1/trips/{tripId}/recompute` | ADMIN | Force a recompute (idempotent) |
+| `GET` | `/v1/trips/{tripId}/adjustments` | OPERATOR, ADMIN | Signed deltas after billing *(S7)* |
+| `POST` | `/v1/trips/{tripId}/recompute` | ADMIN | Force a recompute (idempotent) *(S7)* |
 | `GET` | `/v1/trips?status=DEGRADED` | ADMIN | Recovery backlog |
-| `PUT` | `/v1/tenant/config` | ADMIN | Flags and thresholds; creates a new config version |
+| `PUT` | `/v1/tenant/config` | ADMIN | Flags and thresholds; creates a new config version *(S6)* |
 | `GET` | `/actuator/health`, `/actuator/prometheus` | Internal | Health and metrics |
 
 ### 6.1 Example: ingest
@@ -312,7 +315,7 @@ Content-Type: application/json
   ]
 }
 ```
-Response `202 Accepted` with `{ "tripId": "T-0418", "status": "RECEIVED" }`.
+Response `202 Accepted` with what the upload added and where the trip stands, e.g. `{ "tripId": "T-0418", "status": "COMPUTED", "replayed": false, "pingsReceived": 322, "pingsNew": 322, "pingsDuplicate": 0, ... }`. In S5 the km are computed straight after the upload; from S7 a background job does it and `status` may still read `RECEIVED`.
 
 ### 6.2 Example: breakdown
 
@@ -503,6 +506,7 @@ Full HMM map-matching of every ping · live distance during the trip · GPS-spoo
 | Date | Segment | Change |
 |---|---|---|
 | 2026-10-29 | S1 | First version |
+| 2026-10-29 | S5 | Database + REST API built: Flyway `V1` schema keyed by (`tenant_id`, `trip_id`); Spring JDBC repositories (not JPA); idempotent, multi-part ingest; evidence fingerprint lets an unchanged trip reuse its saved run (no new routing calls); compute runs inline after upload until S7; tests use a real PostgreSQL (Compose locally, service container in CI) instead of Testcontainers |
 | 2026-10-29 | S4 | Routing layer built inside `app` (no separate mock-router service): grid snap to cell centres, Caffeine cache in front of a Resilience4j breaker, per-trip `RoutingUsage`. Geometry guard replaced by cell-centre snapping; batching dropped (A27); L2 Redis left optional |
 | 2026-10-29 | S3 | Pings outside the trip window (± clock-skew tolerance) are dropped first, via `CleaningPipeline.forTrip`. Same-second points within 50 m count as one spot. `TripDistance` now also records `routeRequests` and the route answers it paid on (`routesUsed`), ready for pinning in S7 |
 | 2026-10-29 | S2 | Added step 0 (drop invalid coordinates) before dedupe; specified dedupe tie-breaks and the re-anchor guard's "majority wins" rule |

@@ -32,4 +32,10 @@ Every value marked *configurable* lives in `application.yml` (and in the core `B
 | A25 | Cache vs. breaker order | Cache sits in front of the circuit breaker, so known routes are still answered during an outage. Failed calls are never cached | — |
 | A26 | Circuit breaker | Last 10 calls, at least 5, opens at 50 % failures, stays open 30 s, then 3 trial calls | Yes |
 | A27 | No request batching | Rules 0–2 settle most gaps before any lookup, so a trip needs only ~2 routes. Batching would force routing every gap up front, including ones the rules never route | — |
+| A29 | Split uploads | A trip may arrive in several uploads; evidence is merged and duplicates ignored. Trip type, window and office are fixed by the first upload; a later upload that disagrees is rejected (409) | — |
+| A30 | Trip window length | At most 24 hours; anything longer is rejected as a client error (400) | — |
+| A31 | Timestamp precision | Microseconds (what PostgreSQL stores); finer input is truncated once, on arrival | — |
+| A32 | Coordinates at the API | Not range-checked on upload. Junk GPS is normal and is removed (and counted) by the cleaning filters instead | — |
+| A33 | Idempotency-Key scope | Per trip. Same key + same body = replay (202, nothing redone); same key + different body = 409 | — |
+| A34 | When km are computed | Straight after each upload (S5). S7 moves this to a background job; the API does not change | — |
 | A28 | Provider contract | A provider returns a real distance or throws `RoutingException`. Any other exception is a bug and fails loudly instead of quietly degrading a bill | — |
