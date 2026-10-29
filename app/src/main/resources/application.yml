@@ -1,6 +1,18 @@
 spring:
   application:
     name: tripledger
+  # the Postgres from docker-compose.yml. Override with DB_URL / DB_USER / DB_PASSWORD anywhere else.
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/tripledger}
+    username: ${DB_USER:billing}
+    password: ${DB_PASSWORD:billing_dev_only}
+  # schema lives in src/main/resources/db/migration and is applied on startup
+  flyway:
+    locations: classpath:db/migration
+  # errors come back as RFC 7807 problem+json instead of Spring's default error page
+  mvc:
+    problemdetails:
+      enabled: true
 
 server:
   port: 8080
@@ -13,6 +25,13 @@ management:
   endpoint:
     health:
       show-details: never
+
+# Swagger UI at http://localhost:8080/swagger-ui.html, raw spec at /v3/api-docs
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
 
 tripledger:
   routing:
