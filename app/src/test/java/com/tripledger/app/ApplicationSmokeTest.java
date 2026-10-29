@@ -31,4 +31,13 @@ class ApplicationSmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ruleSetVersion").value("v1"));
     }
+
+    // proves the routing beans wire up from application.yml and the breaker starts closed
+    @Test
+    void infoEndpointShowsTheRoutingSetup() throws Exception {
+        mockMvc.perform(get("/actuator/info"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.routing.provider").value("mock"))
+                .andExpect(jsonPath("$.routing.breaker").value("CLOSED"));
+    }
 }
