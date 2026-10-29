@@ -247,7 +247,7 @@ flowchart LR
 
 A point is **valid** when it is not null, inside lat/lon bounds, not (0, 0), and its time is inside the trip window.
 
-### 5.3 Segment rules — rule set `v1`
+### 5.3 Segment rules — rule set `v2`
 
 Each consecutive pair of points is tested **in this order**; the first rule that matches decides. The order is part of the version.
 
@@ -262,6 +262,8 @@ Each consecutive pair of points is tested **in this order**; the first rule that
 | 6 | Otherwise | Routed driving distance | `ROUTED` | Yes |
 
 Rule 0 exists because a road is never shorter than the straight line: if even the straight line is impossible, a paid call cannot help.
+
+**Speed of tiny moves (v2).** Two points no further apart than GPS accuracy (50 m) prove nothing about movement, so their speed counts as 0 however short the time between them. In `v1` only points at the very same instant were treated this way, and the S9 benchmark showed drop milestones logged a fraction of a second after a ping, 10–40 m away, being flagged `REJECTED_SPEED`: 0.64 flags per trip, most of them noise (`v2`: 0.18, all genuine). `v2` changes labels only, never km: a rejected piece and a short gap both pay the straight line. Runs keep the version they were computed with; a trip touched after the upgrade gets a new `v2` run, and since its km are unchanged no adjustment is created.
 
 ### 5.4 Units, rounding and determinism
 
@@ -327,7 +329,7 @@ Response `202 Accepted` with what the upload added and where the trip stands, e.
 {
   "tripId": "T-0418",
   "status": "COMPUTED",
-  "ruleVersion": "v1",
+  "ruleVersion": "v2",
   "billableKm": "30.61",
   "routingCalls": 2,
   "segments": [
@@ -505,10 +507,12 @@ Logs are JSON with `traceId`, `tenantId`, `tripId`, `ruleVersion`, `event`.
 
 For n ≈ 1,500 pings a trip holds about 40 KB in primitive form. Trips are independent, so computation scales horizontally by trip.
 
+**Measured (S9, [bench/results.md](../bench/results.md), i5-13420H laptop):** 10,000 trips × ~1,570 pings take 7.4 s on one core (p99 2.43 ms per trip) with an 89 MB peak heap; 12 threads do them in 1.9 s. Routing needs 0.78 paid calls per trip. Through the API on the Docker stack: 10,091 pings/s ingested, upload p99 977 ms, reads p99 under 300 ms.
+
 **Where it stops scaling, in order:**
-1. **Provider quota** — at 50 QPS and ≈ 1.25 calls per trip one key routes ≈ 40 trips/s; shift peaks and post-outage recompute bursts hit this first.
-2. **Ping writes** — 3 M trips × 1,500 pings ≈ 4.5 billion rows a month; partition by day and tenant, or move raw pings to a log store.
-3. **CPU** — last; the engine is cheap per trip.
+1. **Database writes** — measured as the first limit. Every upload recomputes the trip so far and stores every segment of the new run, so a trip uploaded in 5 parts does 15 parts of work. Fixes: recompute after the trip has gone quiet (debounce), store plain short-gap segments as one summary row, partition `ping` by day and tenant (3 M trips × 1,500 pings ≈ 4.5 billion rows a month).
+2. **Provider quota** — at 50 QPS and 0.78 calls per trip one key routes ≈ 64 trips/s; post-outage recompute bursts hit this first.
+3. **CPU** — last: 1,357 trips/s per core.
 
 ---
 
@@ -538,6 +542,7 @@ Full HMM map-matching of every ping · live distance during the trip · GPS-spoo
 | Date | Segment | Change |
 |---|---|---|
 | 2026-10-29 | S1 | First version |
+| 2026-10-30 | S9 | Benchmark module (`bench`) + k6 load test. Two findings fixed: rule set `v2` (tiny moves are never "speeding", see 5.3) and recovery on a quiet night (breaker now moves to HALF_OPEN on a timer, `RecoveryScanner` queues a few trial trips while HALF_OPEN, and trips that already have a job no longer use up the recovery batch). The app's runnable jar is now `app-…-exec.jar` so `bench` can use `app` as a library |
 | 2026-10-30 | S8 | Metrics, dashboard, ECS logs, Docker image and full-stack compose, admin status + mock outage switch, demo console (10.0). Metric names settled as `tripledger_*`; no alerting rules and no shadow determinism check |
 | 2026-10-29 | S7 | Jobs, recovery, pinned routes, billing + signed adjustments as described in 8.0. Upload still computes inline first (fast path) with the queue as the durable fallback, instead of queue-only; billing is separate columns on `trip` rather than BILLED/ADJUSTED states |
 | 2026-10-29 | S6 | Security as built: HS256 JWT (not RS256) for local runs, roles per endpoint, employee own-trip rule, tenant only from the token, 404 across tenants; versioned per-tenant settings (`V2`, `config_version` on runs); uniform problem+json with `code` + `traceId`; row-level security not built (trade-off) |

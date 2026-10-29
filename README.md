@@ -9,7 +9,7 @@ MoveInSync Backend Case Study 2026 · Case Study 1 · Advanced Track.
 Rebuilds a trustworthy, explainable billable distance for every cab trip from unreliable GPS data.
 Every kilometre carries the rule that produced it, the same input always gives the same answer, and paid routing calls are kept to a minimum.
 
-> Status: **Segments S0–S8 complete.** Distance engine (underpass trip **18.4 → 30.61 km**, **2 routing calls**), cached + circuit-broken routing (20 trips over one gap = **1** paid call), secured multi-company REST API on PostgreSQL, a crash-safe job queue with automatic recompute and **signed adjustments** for late pings, and now Prometheus metrics, a Grafana dashboard and a demo console, all started by **one `docker compose up`**. **242 tests.** See [docs/ROADMAP.md](docs/ROADMAP.md).
+> Status: **Segments S0–S9 complete.** Distance engine (underpass trip **18.4 → 30.61 km**, **2 routing calls**), cached + circuit-broken routing, secured multi-company REST API on PostgreSQL, a crash-safe job queue with automatic recompute and **signed adjustments** for late pings, Prometheus + Grafana + a demo console from **one `docker compose up`**, and now a benchmark: **10,000 trips × ~1,570 pings in 7.4 s on one core, 89 MB heap, 0.78 paid routing calls per trip**, and an outage halfway fully recovered to the exact km. **253 tests.** See [bench/results.md](bench/results.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Quick start
 
@@ -110,6 +110,7 @@ Another company's trip is always **404**, never 403, so its existence is not rev
 core/   plain Java: the distance engine (no Spring, no database)
 app/    Spring Boot: REST API, JWT security + tenants, PostgreSQL (Flyway + Spring JDBC), routing layer, job queue + billing
 monitoring/  Prometheus scrape config, Grafana data source + "TripLedger" dashboard (provisioned, nothing to click)
+bench/  10,000-trip engine benchmark with a mid-run outage (plain Java, uses core + app as libraries) and the k6 load test script
 docs/   requirements tracker, assumptions, stack choice, roadmap, design note
 Dockerfile   two-stage build: Maven + JDK 21 builds the jar, a slim JRE 21 image runs it as a non-root user
 ```
@@ -118,11 +119,12 @@ Dockerfile   two-stage build: Maven + JDK 21 builds the jar, a slim JRE 21 image
 
 | Area | Classes | Proven by |
 |---|---|---|
+| Benchmark + load test | `TripFactory` (realistic synthetic trips, fixed seed), `Benchmark` (two runs + recovery, report), `bench/k6/load.js` | `TripFactoryTest`, `BenchmarkTest` (400-trip outage run in CI: everything recovered, identical km); results in [bench/results.md](bench/results.md) |
 | Monitoring + demo | `TripLedgerMetrics` (counters + compute timer), `GaugesConfig` (breaker, cache, queue depth, compute lag), `AdminController`, ECS JSON logs in Docker, `static/index.html` console, Grafana dashboard (15 panels) | `MetricsIntegrationTest` (scrape has our metrics, no tenant or trip ids in them, console served), `AdminIntegrationTest` (status, live outage switch → DEGRADED, operators get 403) |
 | Exact distances | `GeoPoint` (micro-degrees), `Distance` (integer mm), `Haversine` (StrictMath) | `GeoPointTest`, `DistanceTest`, `HaversineTest` |
 | One place for every threshold | `BillingRules` (case-study defaults + builder) | `BillingRulesTest` |
 | Anchor points | `EmployeeAnchorResolver` (actual → profile home → planned), `NoShowAnchorResolver` (behind a flag), `OfficeAnchorResolver` (400 m rule) | One test class per resolver |
-| Segment rules 0–6 | `ImpossibleSpeedRule`, `ShortGapRule`, `ParkedRule`, `RoutingUnavailableRule`, `RouteTooLongRule`, `RouteTooFastRule`, `RoutedRule` in `RuleSet.v1()` | `RuleSetTest` (every boundary: 69/70 s, 4.9/5.1 km/h, 100 km) |
+| Segment rules 0–6 | `ImpossibleSpeedRule`, `ShortGapRule`, `ParkedRule`, `RoutingUnavailableRule`, `RouteTooLongRule`, `RouteTooFastRule`, `RoutedRule` in `RuleSet.v2()` | `RuleSetTest` (every boundary: 69/70 s, 4.9/5.1 km/h, 100 km) |
 | The engine | `DistanceEngine.compute(evidence, routeLookup)` → `TripDistance` with a label on every segment | `DistanceEngineTest` (underpass 18.4 → 30.61 km, outage → DEGRADED, shuffled input → identical result) |
 | Jobs, recovery, billing | Compute queue in Postgres (`JobRepository`, `ComputeWorker`, lease + `SKIP LOCKED`), `RecoveryScanner`, `PinnedRoutes`, `ResultWriter` (run + signed adjustment in one transaction), `BillingService` | `JobsIntegrationTest` (crash, failure, 2 concurrency tests), `RecomputeBillingIntegrationTest` (R10, R11, R12, pinned routes), `PinnedRoutesTest`, `JobSettingsTest` |
 | Security + tenancy | JWT (`SecurityConfig`, `TenantClaimValidator`, `CurrentCaller`), roles per endpoint, employee own-trip rule, per-tenant `TenantSettings` (Flyway `V2`), `Problems` + `ApiExceptionHandler` + `TraceIdFilter` | `SecurityIntegrationTest` (12), `TenantConfigIntegrationTest` (5), `ErrorHandlingIntegrationTest` (9, incl. a log scan), `CallerTest`, `TenantSettingsTest` |
@@ -142,12 +144,32 @@ See the routing setup of a running app (provider, breaker state, cached routes):
 curl http://localhost:8080/actuator/info
 ```
 
+## Benchmark and load test
+
+Full numbers, machine and how to repeat them: **[bench/results.md](bench/results.md)**. Laptop: Intel Core i5-13420H (12 threads), 15.6 GB RAM, Windows 11.
+
+| | |
+|---|---|
+| 10,000 trips, 15.7 M pings, one thread | **7.4 s** engine time, p50 / p99 per trip **0.62 / 2.43 ms**, peak heap **89 MB** |
+| Same trips, 12 threads | **1.9 s** (5,129 trips/s, 8.1 M pings/s) |
+| Paid routing calls (R15) | every pair of points 15.5 M → rules only 23,296 → **rules + cache 7,757 (0.78 per trip)** |
+| Map service killed halfway | 40 calls hit the dead service before the breaker opened; 583 trips stayed COMPUTED from the cache; after recovery **10,000 / 10,000 trips have exactly the healthy-run km** |
+| API under load (k6, 2 min, full Docker stack) | 20 cabs uploading + 50 reads/s: **95 req/s, 0 errors**, **10,091 pings/s** ingested; p99 upload **977 ms**, `/distance` **246 ms**, `/breakdown` **298 ms** |
+
+```bash
+mvn -q install -DskipTests && mvn -q -pl bench exec:exec      # engine benchmark, ~1 min
+
+# load test, ~3 min (stack running: docker compose up -d --build)
+docker run --rm -i --network tripledger_default grafana/k6:0.54.0 run -e BASE_URL=http://app:8080 - < bench/k6/load.js
+```
+
 ## Documents
 
 - [Design note](docs/DESIGN.md) — architecture, data model, APIs, rule order, failure modes, trade-offs
 - [Requirements tracker](docs/REQUIREMENTS.md) — every PDF item, where it is built, how it is proved
 - [Assumptions](docs/ASSUMPTIONS.md) — decisions where the PDF is open
 - [Technology choice](docs/STACK.md) — why Java 21 + Spring Boot
+- [Benchmark and load test results](bench/results.md) — numbers, machine, the two bugs they found
 - [Roadmap](docs/ROADMAP.md) — the 11 build segments
 
 ### Metrics
@@ -175,6 +197,5 @@ Inside Docker the logs are JSON (Elastic Common Schema), one line per event, wit
 ## Sections still to come
 
 - API reference and sample calls (S10)
-- Benchmark results and machine (S9)
 - Trade-offs and what was left out (S10)
 - Demo video (S10)

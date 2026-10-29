@@ -11,7 +11,7 @@
 | S6 | Security, tenancy & error handling | 4, 5 | Done |
 | S7 | Recompute, jobs & signed adjustments | 4, 5 | Done |
 | S8 | Monitoring & demo UI | 4, 8 | Done |
-| S9 | Benchmark & load test | 5, 6 | Pending |
+| S9 | Benchmark & load test | 5, 6 | Done |
 | S10 | Docs, submission & demo video | 6, 7, 8 | Pending |
 
 Each segment is done when its tests pass, the README or design note is updated, and CI is green.

@@ -20,11 +20,11 @@ Every value marked *configurable* lives in `application.yml` (and in the core `B
 | A13 | Money | `BigDecimal`, HALF_EVEN, to the paisa | — |
 | A14 | Earth radius | 6,371,008.8 m (mean radius), fixed in the rule set | — |
 | A15 | Routing provider | A mock provider is used for the demo and tests; the interface allows Google, OSRM or others | — |
-| A16 | Rule-set version | `v1`; a result always stores the rule-set version and a hash of the config it used | — |
+| A16 | Rule-set version | `v2` (since S9; `v1` before). A result always stores the rule-set version and a hash of the config it used | — |
 | A17 | Duplicate pings | One ping per timestamp; on conflict the most accurate wins, then lowest device sequence | — |
 | A18 | Invalid coordinates | Out-of-range points and (0, 0) are dropped before any other step | — |
 | A20 | Who gets an employee anchor | Only employees with a PICKUP or DROP milestone. A roster entry with no milestone is no proof the employee rode, so no detour is added | — |
-| A21 | Same-second points | An anchor and a ping at the same second within GPS accuracy (50 m) are treated as the same spot (speed 0); further apart at the same instant is impossible | — |
+| A21 | Tiny moves (rule set `v2`) | Two points within GPS accuracy (50 m) of each other count as speed 0, whatever the time between them: a drop logged 0.1 s after a ping 20 m away is not 720 km/h. Further apart at the very same instant is impossible | Yes (via max accuracy) |
 | A22 | Office event sent twice | Latest TRIP_END (login) / earliest TRIP_START (logout) is used; ones with a timestamp win | — |
 | A23 | Missing office event | The planned office is anchored at the window end (login) or window start (logout) | — |
 | A19 | Teleport re-anchor | 3 consistent suspicious pings in a row replace the accepted pings they contradict, but only if those are fewer | Yes |
@@ -53,4 +53,7 @@ Every value marked *configurable* lives in `application.yml` (and in the core `B
 | A47 | Mock outage switch | `PUT /v1/admin/routing/mock` works only while the provider is the mock one; with a real map service it is refused (400). It is for demos and tests | — |
 | A48 | Demo console | Gets its own ADMIN + OPERATOR token from the dev token endpoint, so it only works where that endpoint is on (local / Docker demo) | — |
 | A49 | Metric tags | No tag per tenant or trip (one time series per trip would overload Prometheus). Per-trip detail lives in the database and the logs | — |
+| A50 | Recovery after an outage | The breaker moves OPEN → HALF_OPEN on a timer (30 s), with or without traffic. While HALF_OPEN the recovery scan queues only as many trips as the breaker allows trial calls (3); once CLOSED, a full batch of 100 | Yes |
+| A51 | Benchmark trips | Synthetic but realistic (`TripFactory`): 400 recurring routes, ~1,500 pings at 4 s, jitter, 1 % bad fixes, 0.2 % teleports, 0.5 % duplicates, out-of-order batches, 1–3 GPS dead zones per route, 4 % drops without a location. Same seed, same trips on every machine | Yes (seed) |
+| A52 | Benchmark breaker wait | 1 s instead of 30 s: 10,000 trips run in seconds, so a real-time wait would cover the whole second half of the run | — |
 | A28 | Provider contract | A provider returns a real distance or throws `RoutingException`. Any other exception is a bug and fails loudly instead of quietly degrading a bill | — |

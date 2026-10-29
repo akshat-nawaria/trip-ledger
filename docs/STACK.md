@@ -26,6 +26,7 @@
 | API docs | springdoc-openapi 2.8 (Swagger UI) |
 | Container runtime | Docker + Docker Compose |
 | Metrics | Micrometer + Prometheus registry, Prometheus 2.55, Grafana 11.3 |
+| Load test | k6 0.54, run from its Docker image (nothing to install) |
 | Demo console | One static HTML page served by the app, Leaflet 1.9 map from a CDN (no build step, no Node) |
 
 ## Modules
@@ -34,5 +35,6 @@
 |---|---|---|
 | `core` | Domain, cleaning filters, anchors, segment rules, distance engine | **No** |
 | `app` | REST API, security, persistence, routing adapters, jobs | Yes |
+| `bench` | 10,000-trip benchmark (uses `core` + `app` as plain libraries, starts no Spring), k6 load test script | No Spring context |
 
-More modules (`bench` in S9) are added in the segments that need them. The mock routing provider lives inside `app` behind the `RoutingProvider` interface, so it didn't need its own module.
+`app` builds two jars: the runnable Spring Boot one (`app-…-exec.jar`, used by Docker) and a plain one, so `bench` can reuse the real routing classes. The mock routing provider lives inside `app` behind the `RoutingProvider` interface, so it didn't need its own module.
