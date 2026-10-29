@@ -21,6 +21,7 @@ public record RunRow(
         int providerCalls,
         int routingUnavailable,
         int configVersion,
+        int routesReplayed,
         String cleaningJson,
         String anchorsJson,
         Instant createdAt) {

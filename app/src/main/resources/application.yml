@@ -43,6 +43,17 @@ tripledger:
     token-ttl: 8h
     # POST /v1/dev/tokens hands a token to anyone who asks - great for a demo, must be false anywhere real
     dev-tokens: ${DEV_TOKENS:true}
+  jobs:
+    # background worker + recovery scan on a timer. Tests turn this off and drive them by hand.
+    enabled: true
+    poll-millis: 2000            # look for due jobs every 2 s
+    batch-size: 20
+    lease: 60s                   # a claimed job is ours for 60 s; if we die, another worker takes it after that
+    max-attempts: 5
+    retry-base: 10s              # retries after 10 s, 30 s, 90 s, 270 s ...
+    retry-max: 10m               # ...but never wait more than 10 min
+    recovery-scan-millis: 60000  # once a minute: routing healthy? then re-queue DEGRADED trips
+    recovery-batch: 100
   routing:
     # which map service to ask for road distances. Only "mock" exists for now.
     provider: mock

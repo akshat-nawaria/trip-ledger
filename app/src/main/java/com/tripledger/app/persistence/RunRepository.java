@@ -1,7 +1,9 @@
 package com.tripledger.app.persistence;
 
 import com.tripledger.app.routing.RoutingUsage;
+import com.tripledger.core.geo.Distance;
 import com.tripledger.core.model.GeoPoint;
+import com.tripledger.core.model.RouteEvidence;
 import com.tripledger.core.model.Segment;
 import com.tripledger.core.model.SegmentLabel;
 import com.tripledger.core.model.TripDistance;
@@ -11,15 +13,16 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Computation runs and their segments.
  *
  * A run is written once and never changed. The trip just points at its latest run, so the
  * history of every bill stays intact - handy when a vendor disputes an old invoice.
+ * Each run also keeps the road distances it used (run_route), so later recomputes can replay them.
  */
 @Repository
 public class RunRepository {
@@ -28,7 +31,7 @@ public class RunRepository {
 
     private static final String RUN_COLUMNS = """
             r.id, r.trip_id, r.input_hash, r.rule_version, r.status, r.total_mm, r.billable_km,
-            r.route_requests, r.cache_hits, r.provider_calls, r.routing_unavailable, r.config_version,
+            r.route_requests, r.cache_hits, r.provider_calls, r.routing_unavailable, r.config_version, r.routes_replayed,
             r.cleaning_json::text AS cleaning_json, r.anchors_json::text AS anchors_json, r.created_at
             """;
 
@@ -38,21 +41,20 @@ public class RunRepository {
         this.jdbc = jdbc;
     }
 
-    // run + all its segments + "trip now points here", all or nothing.
-    // If an identical good run already exists, the unique index throws DuplicateKeyException and
-    // nothing is written - the caller treats that as "someone else already did this".
-    @Transactional
-    public void save(String tenant, UUID runId, String inputHash, int configVersion, TripDistance result, RoutingUsage usage,
-            String cleaningJson, String anchorsJson) {
+    // the run row, its segments and the routes it used. No transaction of its own on purpose:
+    // ResultWriter wraps this together with the trip update and any billing adjustment.
+    // If an identical good run already exists, the unique index throws DuplicateKeyException.
+    public void insert(String tenant, UUID runId, String inputHash, int configVersion, TripDistance result,
+            RoutingUsage usage, int routesReplayed, String cleaningJson, String anchorsJson) {
         jdbc.update("""
                 INSERT INTO computation_run (id, tenant_id, trip_id, input_hash, rule_version, status,
                     total_mm, billable_km, route_requests, cache_hits, provider_calls, routing_unavailable,
-                    cleaning_json, anchors_json, config_version)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), CAST(? AS jsonb), ?)
+                    cleaning_json, anchors_json, config_version, routes_replayed)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), CAST(? AS jsonb), ?, ?)
                 """,
                 runId, tenant, result.tripId(), inputHash, result.ruleSetVersion(), result.status().name(),
                 result.total().millimetres(), result.billableKm(), usage.requests(), usage.cacheHits(),
-                usage.providerCalls(), usage.unavailable(), cleaningJson, anchorsJson, configVersion);
+                usage.providerCalls(), usage.unavailable(), cleaningJson, anchorsJson, configVersion, routesReplayed);
 
         List<Segment> segments = result.segments();
         if (!segments.isEmpty()) {
@@ -74,10 +76,42 @@ public class RunRepository {
                     });
         }
 
-        jdbc.update("""
-                UPDATE trip SET status = ?, latest_run_id = ?, updated_at = now()
-                WHERE tenant_id = ? AND trip_id = ?
-                """, TripState.from(result.status()).name(), runId, tenant, result.tripId());
+        List<RouteEvidence> routes = result.routesUsed();
+        if (!routes.isEmpty()) {
+            List<Integer> seqs = IntStream.range(0, routes.size()).boxed().toList();
+            jdbc.batchUpdate("""
+                    INSERT INTO run_route (run_id, seq, from_lat_e6, from_lon_e6, to_lat_e6, to_lon_e6, distance_mm)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, seqs, BATCH_SIZE, (ps, i) -> {
+                        RouteEvidence r = routes.get(i);
+                        ps.setObject(1, runId);
+                        ps.setInt(2, i + 1);
+                        ps.setLong(3, r.from().latE6());
+                        ps.setLong(4, r.from().lonE6());
+                        ps.setLong(5, r.to().latE6());
+                        ps.setLong(6, r.to().lonE6());
+                        ps.setLong(7, r.drivingDistance().millimetres());
+                    });
+        }
+    }
+
+    // every road distance any earlier run of this trip paid for, newest first
+    public List<RouteEvidence> pinnedRoutes(String tenant, String tripId) {
+        return jdbc.query("""
+                SELECT rr.from_lat_e6, rr.from_lon_e6, rr.to_lat_e6, rr.to_lon_e6, rr.distance_mm
+                FROM run_route rr JOIN computation_run r ON r.id = rr.run_id
+                WHERE r.tenant_id = ? AND r.trip_id = ?
+                ORDER BY r.created_at DESC, rr.seq
+                """, (rs, n) -> new RouteEvidence(
+                        new GeoPoint(rs.getLong("from_lat_e6"), rs.getLong("from_lon_e6")),
+                        new GeoPoint(rs.getLong("to_lat_e6"), rs.getLong("to_lon_e6")),
+                        Distance.ofMillimetres(rs.getLong("distance_mm"))),
+                tenant, tripId);
+    }
+
+    public long totalMm(UUID runId) {
+        Long total = jdbc.queryForObject("SELECT total_mm FROM computation_run WHERE id = ?", Long.class, runId);
+        return total == null ? 0 : total;
     }
 
     public Optional<RunRow> latest(String tenant, String tripId) {
@@ -126,6 +160,7 @@ public class RunRepository {
                 rs.getInt("provider_calls"),
                 rs.getInt("routing_unavailable"),
                 rs.getInt("config_version"),
+                rs.getInt("routes_replayed"),
                 rs.getString("cleaning_json"),
                 rs.getString("anchors_json"),
                 Sql.instant(rs, "created_at"));

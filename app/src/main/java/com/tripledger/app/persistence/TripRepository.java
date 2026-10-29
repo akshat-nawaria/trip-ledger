@@ -3,6 +3,7 @@ package com.tripledger.app.persistence;
 import com.tripledger.core.model.GeoPoint;
 import com.tripledger.core.model.TripType;
 import java.sql.ResultSet;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
@@ -61,6 +62,35 @@ public class TripRepository {
                 UPDATE trip SET status = ?, latest_run_id = ?, updated_at = now()
                 WHERE tenant_id = ? AND trip_id = ?
                 """, status.name(), runId, tenant, tripId);
+    }
+
+    // the trip's billing info, locked until the transaction ends (so billing and adjustments of the
+    // same trip can never interleave)
+    public Optional<TripBilling> lockBilling(String tenant, String tripId) {
+        return jdbc.query("""
+                SELECT invoice_id, billed_run_id, billed_km, billed_at FROM trip
+                WHERE tenant_id = ? AND trip_id = ? FOR UPDATE
+                """, (rs, n) -> new TripBilling(rs.getString("invoice_id"), rs.getObject("billed_run_id", UUID.class),
+                        rs.getBigDecimal("billed_km"), Sql.instant(rs, "billed_at")),
+                tenant, tripId).stream().findFirst();
+    }
+
+    // same as lockBilling, without the lock (for reads)
+    public TripBilling billing(String tenant, String tripId) {
+        return jdbc.query("""
+                SELECT invoice_id, billed_run_id, billed_km, billed_at FROM trip
+                WHERE tenant_id = ? AND trip_id = ?
+                """, (rs, n) -> new TripBilling(rs.getString("invoice_id"), rs.getObject("billed_run_id", UUID.class),
+                        rs.getBigDecimal("billed_km"), Sql.instant(rs, "billed_at")),
+                tenant, tripId).stream().findFirst().orElse(TripBilling.NOT_BILLED);
+    }
+
+    // only ever sets billing once: "invoice_id IS NULL" makes a second attempt a no-op (returns false)
+    public boolean markBilled(String tenant, String tripId, String invoiceId, UUID runId, BigDecimal billedKm) {
+        return jdbc.update("""
+                UPDATE trip SET invoice_id = ?, billed_run_id = ?, billed_km = ?, billed_at = now(), updated_at = now()
+                WHERE tenant_id = ? AND trip_id = ? AND invoice_id IS NULL
+                """, invoiceId, runId, billedKm, tenant, tripId) == 1;
     }
 
     // newest first; status null = all trips
