@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tripledger.app.api.dto.EvidenceRequest;
+import com.tripledger.app.jobs.ComputeWorker;
 import com.tripledger.app.security.Role;
 import com.tripledger.app.security.TokenIssuer;
 import java.util.Set;
@@ -38,6 +39,9 @@ abstract class ApiTestBase {
 
     @Autowired
     protected TokenIssuer tokens;
+
+    @Autowired
+    protected ComputeWorker worker;
 
     protected final String tenant = "it-" + UUID.randomUUID().toString().substring(0, 8);
 
@@ -80,6 +84,14 @@ abstract class ApiTestBase {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return json.readTree(body);
+    }
+
+    // the background worker is switched off in tests (src/test/resources/application.properties);
+    // this runs it by hand until nothing is due any more
+    protected void drainJobs() {
+        for (int i = 0; i < 100 && worker.runOnce() > 0; i++) {
+            // keep going
+        }
     }
 
     protected JsonNode body(ResultActions result) throws Exception {
