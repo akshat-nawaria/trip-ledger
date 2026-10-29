@@ -1,0 +1,22 @@
+# One-command infrastructure for local development.
+# S0: PostgreSQL only. Later segments add the app, mock router, Prometheus and Grafana.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tripledger-postgres
+    environment:
+      POSTGRES_DB: tripledger
+      POSTGRES_USER: billing
+      POSTGRES_PASSWORD: billing_dev_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U billing -d tripledger"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
