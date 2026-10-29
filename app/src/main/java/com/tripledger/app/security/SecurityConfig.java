@@ -42,6 +42,10 @@ public class SecurityConfig {
                         // let Spring's own error forwarding through, otherwise a real error turns into a confusing 401
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        // scraped by Prometheus inside the compose network; carries no tenant or trip data
+                        .requestMatchers("/actuator/prometheus").permitAll()
+                        // the demo page itself is just static files; every call it makes still needs a token
+                        .requestMatchers(HttpMethod.GET, "/", "/index.html", "/favicon.ico").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/dev/tokens").permitAll() // only exists when dev-tokens is on
                         .requestMatchers(HttpMethod.POST, "/v1/trips/*/evidence").hasAnyRole("OPERATOR", "ADMIN")
@@ -51,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/v1/trips/*/recompute", "/v1/trips/*/bill").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/v1/trips/*/adjustments").hasAnyRole("OPERATOR", "ADMIN")
                         .requestMatchers("/v1/tenant/config").hasRole("ADMIN")
+                        .requestMatchers("/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter))

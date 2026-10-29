@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tripledger.app.api.dto.EvidenceRequest;
 import com.tripledger.app.jobs.ComputeWorker;
+import com.tripledger.app.observability.TripLedgerMetrics;
 import com.tripledger.app.persistence.TripRepository;
 import com.tripledger.app.persistence.TripState;
 import java.security.MessageDigest;
@@ -27,12 +28,15 @@ public class EvidenceService {
     private final ComputeWorker worker;
     private final TripRepository trips;
     private final ObjectMapper json;
+    private final TripLedgerMetrics metrics;
 
-    public EvidenceService(EvidenceWriter writer, ComputeWorker worker, TripRepository trips, ObjectMapper json) {
+    public EvidenceService(EvidenceWriter writer, ComputeWorker worker, TripRepository trips, ObjectMapper json,
+            TripLedgerMetrics metrics) {
         this.writer = writer;
         this.worker = worker;
         this.trips = trips;
         this.json = json;
+        this.metrics = metrics;
     }
 
     public record IngestResult(StoredEvidence stored, TripState status) {
@@ -44,6 +48,7 @@ public class EvidenceService {
         RequestChecks.tripWindow(request.windowStartInstant(), request.windowEndInstant());
 
         StoredEvidence stored = writer.store(tenant, tripId, idempotencyKey, hash(request), request);
+        metrics.uploaded(stored);
 
         // a replay changed nothing and queued nothing - just report where the trip is
         if (!stored.replayed()) {

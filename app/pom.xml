@@ -63,6 +63,12 @@
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
 
+        <!-- monitoring (S8): /actuator/prometheus for Prometheus + Grafana -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- REST API (S5): request validation + Swagger UI -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

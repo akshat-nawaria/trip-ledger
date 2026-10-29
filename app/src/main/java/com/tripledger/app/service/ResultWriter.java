@@ -1,5 +1,6 @@
 package com.tripledger.app.service;
 
+import com.tripledger.app.observability.TripLedgerMetrics;
 import com.tripledger.app.persistence.AdjustmentRepository;
 import com.tripledger.app.persistence.RunRepository;
 import com.tripledger.app.persistence.TripBilling;
@@ -31,11 +32,14 @@ public class ResultWriter {
     private final RunRepository runs;
     private final TripRepository trips;
     private final AdjustmentRepository adjustments;
+    private final TripLedgerMetrics metrics;
 
-    public ResultWriter(RunRepository runs, TripRepository trips, AdjustmentRepository adjustments) {
+    public ResultWriter(RunRepository runs, TripRepository trips, AdjustmentRepository adjustments,
+            TripLedgerMetrics metrics) {
         this.runs = runs;
         this.trips = trips;
         this.adjustments = adjustments;
+        this.metrics = metrics;
     }
 
     @Transactional
@@ -66,5 +70,6 @@ public class ResultWriter {
         long deltaMm = result.total().millimetres() - chargedMm;
         UUID fromRun = sofar.lastRunId() != null ? sofar.lastRunId() : billing.billedRunId();
         adjustments.insert(UUID.randomUUID(), tenant, tripId, billing.invoiceId(), deltaKm, deltaMm, fromRun, runId);
+        metrics.adjustmentCreated(); // counted even if the transaction rolls back later - a rare, harmless overcount
     }
 }

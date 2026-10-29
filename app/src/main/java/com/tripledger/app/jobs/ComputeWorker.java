@@ -1,5 +1,6 @@
 package com.tripledger.app.jobs;
 
+import com.tripledger.app.observability.TripLedgerMetrics;
 import com.tripledger.app.persistence.JobRepository;
 import com.tripledger.app.persistence.JobRepository.ClaimedJob;
 import com.tripledger.app.service.DistanceService;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 /**
@@ -29,11 +31,13 @@ public class ComputeWorker {
     private final JobRepository jobs;
     private final DistanceService distance;
     private final JobSettings settings;
+    private final TripLedgerMetrics metrics;
 
-    public ComputeWorker(JobRepository jobs, DistanceService distance, JobSettings settings) {
+    public ComputeWorker(JobRepository jobs, DistanceService distance, JobSettings settings, TripLedgerMetrics metrics) {
         this.jobs = jobs;
         this.distance = distance;
         this.settings = settings;
+        this.metrics = metrics;
     }
 
     // returns how many jobs it handled (0 = nothing was due)
@@ -49,23 +53,33 @@ public class ComputeWorker {
     }
 
     private Optional<DistanceService.Outcome> execute(ClaimedJob job) {
+        // every log line written while this job runs carries the tenant and trip (JSON logs pick these up)
+        MDC.put("tenantId", job.tenantId());
+        MDC.put("tripId", job.tripId());
         try {
             DistanceService.Outcome outcome = distance.compute(job.tenantId(), job.tripId());
             jobs.complete(job.id());
+            metrics.jobFinished("done");
             return Optional.of(outcome);
         } catch (TripNotFoundException e) {
             jobs.fail(job.id(), "trip not found"); // retrying can't make a missing trip appear
+            metrics.jobFinished("failed");
         } catch (RuntimeException e) {
             // only the exception type is stored and logged with the ids - messages can carry data we don't keep
             String error = e.getClass().getSimpleName();
             if (job.attempts() >= settings.maxAttempts()) {
                 jobs.fail(job.id(), error);
+                metrics.jobFinished("failed");
                 log.error("Compute job {} for trip {} failed for good after {} attempts ({})",
                         job.id(), job.tripId(), job.attempts(), error, e);
             } else {
                 jobs.retryLater(job.id(), settings.backoff(job.attempts()), error);
+                metrics.jobFinished("retry");
                 log.warn("Compute job {} for trip {} failed ({}), will retry", job.id(), job.tripId(), error);
             }
+        } finally {
+            MDC.remove("tenantId");
+            MDC.remove("tripId");
         }
         return Optional.empty();
     }

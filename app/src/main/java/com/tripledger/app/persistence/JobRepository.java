@@ -121,6 +121,29 @@ public class JobRepository {
                 """, limit);
     }
 
+    // ---- numbers for the monitoring gauges and the admin page ----
+
+    public long countByStatus(String status) {
+        Long n = jdbc.queryForObject("SELECT count(*) FROM compute_job WHERE status = ?", Long.class, status);
+        return n == null ? 0 : n;
+    }
+
+    public long countFailedLastDay() {
+        Long n = jdbc.queryForObject("""
+                SELECT count(*) FROM compute_job WHERE status = 'FAILED' AND updated_at > now() - interval '24 hours'
+                """, Long.class);
+        return n == null ? 0 : n;
+    }
+
+    // how long the oldest waiting job has been waiting = how far behind the workers are (0 if nothing waits)
+    public double oldestPendingAgeSeconds() {
+        Double age = jdbc.queryForObject("""
+                SELECT COALESCE(EXTRACT(EPOCH FROM now() - min(created_at)), 0)::double precision
+                FROM compute_job WHERE status = 'PENDING'
+                """, Double.class);
+        return age == null ? 0 : age;
+    }
+
     private static String interval(Duration d) {
         return d.toMillis() + " milliseconds";
     }

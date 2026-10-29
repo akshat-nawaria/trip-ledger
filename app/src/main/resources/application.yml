@@ -22,10 +22,17 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       show-details: never
+  metrics:
+    # histogram buckets so Grafana can show p95 / p99 API latency
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: tripledger
 
 # Swagger UI at http://localhost:8080/swagger-ui.html, raw spec at /v3/api-docs
 springdoc:

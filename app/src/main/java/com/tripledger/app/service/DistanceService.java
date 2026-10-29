@@ -2,6 +2,7 @@ package com.tripledger.app.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tripledger.app.observability.TripLedgerMetrics;
 import com.tripledger.app.persistence.EvidenceRepository;
 import com.tripledger.app.persistence.RunRepository;
 import com.tripledger.app.persistence.RunRow;
@@ -49,9 +50,10 @@ public class DistanceService {
     private final TenantConfigService tenantConfig;
     private final RoutingGateway routing;
     private final ObjectMapper json;
+    private final TripLedgerMetrics metrics;
 
     public DistanceService(TripRepository trips, EvidenceRepository evidence, RunRepository runs, ResultWriter results,
-            TenantConfigService tenantConfig, RoutingGateway routing, ObjectMapper json) {
+            TenantConfigService tenantConfig, RoutingGateway routing, ObjectMapper json, TripLedgerMetrics metrics) {
         this.trips = trips;
         this.evidence = evidence;
         this.runs = runs;
@@ -59,6 +61,7 @@ public class DistanceService {
         this.tenantConfig = tenantConfig;
         this.routing = routing;
         this.json = json;
+        this.metrics = metrics;
     }
 
     public record Outcome(TripState status, UUID runId, boolean reused) {
@@ -77,9 +80,11 @@ public class DistanceService {
         // so don't spend routing calls finding that out again
         Optional<RunRow> alreadyDone = runs.findComputed(tenant, tripId, inputHash, EngineInfo.RULE_SET_VERSION);
         if (alreadyDone.isPresent()) {
+            metrics.reused();
             return reuse(tenant, trip, alreadyDone.get());
         }
 
+        var timer = metrics.startCompute();
         TripRouting tripRouting = routing.newTrip();
         PinnedRoutes lookup = new PinnedRoutes(runs.pinnedRoutes(tenant, tripId), tripRouting);
         // the engine holds no state, so a fresh one per computation (with this tenant's rules) costs nothing
@@ -94,6 +99,7 @@ public class DistanceService {
             RunRow theirs = runs.findComputed(tenant, tripId, inputHash, EngineInfo.RULE_SET_VERSION).orElseThrow(() -> e);
             return reuse(tenant, trip, theirs);
         }
+        metrics.computed(timer, result, tripRouting.usage(), lookup.replayed());
         return new Outcome(TripState.from(result.status()), runId, false);
     }
 
