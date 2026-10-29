@@ -23,8 +23,8 @@ public final class RuleSet {
         this.rules = List.copyOf(rules);
     }
 
-    // the one from the case study
-    public static RuleSet v1() {
+    // the case study's rules, in the case study's order (v2 only changed how speed is judged for tiny moves)
+    public static RuleSet v2() {
         return new RuleSet(EngineInfo.RULE_SET_VERSION, List.of(
                 new ImpossibleSpeedRule(),     // 0
                 new ShortGapRule(),            // 1
@@ -46,7 +46,7 @@ public final class RuleSet {
                 return decision.get();
             }
         }
-        // can't happen with v1 (rule 6 or rule 3 always matches), but fail loudly if someone builds a broken set
+        // can't happen with v2 (rule 6 or rule 3 always matches), but fail loudly if someone builds a broken set
         throw new IllegalStateException("no rule matched segment " + segment.from() + " -> " + segment.to());
     }
 

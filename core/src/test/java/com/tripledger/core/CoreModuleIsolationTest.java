@@ -25,6 +25,6 @@ class CoreModuleIsolationTest {
 
     @Test
     void ruleSetVersionIsDefined() {
-        assertThat(EngineInfo.RULE_SET_VERSION).isEqualTo("v1");
+        assertThat(EngineInfo.RULE_SET_VERSION).isEqualTo("v2");
     }
 }

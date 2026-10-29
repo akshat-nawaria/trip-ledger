@@ -248,7 +248,7 @@ class DistanceEngineTest {
 
     @Test
     void resultCarriesTheRuleSetVersion() {
-        assertThat(engine.compute(underpassTrip(), underpassRoads()).ruleSetVersion()).isEqualTo("v1");
+        assertThat(engine.compute(underpassTrip(), underpassRoads()).ruleSetVersion()).isEqualTo("v2");
     }
 
     // ---- helpers -----------------------------------------------------------------------------

@@ -9,7 +9,10 @@ package com.tripledger.core;
 public final class EngineInfo {
 
     // bump this whenever a rule (or the order of the rules) changes, so old bills keep their old version
-    public static final String RULE_SET_VERSION = "v1";
+    //   v1  the rules from the case study
+    //   v2  a move smaller than GPS accuracy is never judged as speeding (S9 benchmark finding).
+    //       Changes labels only, never km: a rejected piece and a short gap both pay the straight line
+    public static final String RULE_SET_VERSION = "v2";
 
     private EngineInfo() {
         // just constants, no instances

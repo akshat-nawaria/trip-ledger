@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
  */
 class RuleSetTest {
 
-    private final RuleSet ruleSet = RuleSet.v1();
+    private final RuleSet ruleSet = RuleSet.v2();
     private final BillingRules rules = BillingRules.defaults();
 
     // a segment that starts at ORIGIN at T0 and ends `metres` north, `seconds` later
@@ -41,7 +41,7 @@ class RuleSetTest {
     void v1HasSevenRulesInTheDocumentedOrder() {
         List<String> names = ruleSet.rules().stream().map(r -> r.getClass().getSimpleName()).toList();
 
-        assertThat(ruleSet.version()).isEqualTo("v1");
+        assertThat(ruleSet.version()).isEqualTo("v2");
         assertThat(names).containsExactly("ImpossibleSpeedRule", "ShortGapRule", "ParkedRule",
                 "RoutingUnavailableRule", "RouteTooLongRule", "RouteTooFastRule", "RoutedRule");
     }
@@ -109,6 +109,22 @@ class RuleSetTest {
         SegmentDecision decision = ruleSet.classify(segment(0, 30, FakeRouteLookup.working()));
 
         assertThat(decision.label()).isEqualTo(SegmentLabel.SHORT_GAP_AERIAL);
+    }
+
+    @Test
+    void aTinyMoveInATinyTimeIsGpsNoiseNotSpeeding() {
+        // 40 m in 1 s would be 144 km/h, but 40 m is inside GPS accuracy (50 m): no proof it moved at all
+        SegmentDecision decision = ruleSet.classify(segment(1, 40, FakeRouteLookup.working()));
+
+        assertThat(decision.label()).isEqualTo(SegmentLabel.SHORT_GAP_AERIAL);
+        assertThat(decision.label().needsReview()).isFalse();
+    }
+
+    @Test
+    void aMoveBeyondGpsAccuracyInATinyTimeIsStillRejected() {
+        SegmentDecision decision = ruleSet.classify(segment(1, 60, FakeRouteLookup.working())); // 216 km/h
+
+        assertThat(decision.label()).isEqualTo(SegmentLabel.REJECTED_SPEED);
     }
 
     @Test

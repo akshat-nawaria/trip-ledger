@@ -44,7 +44,7 @@ public final class DistanceEngine {
     private final List<AnchorResolver> anchorResolvers;
 
     public DistanceEngine(BillingRules rules) {
-        this(rules, RuleSet.v1());
+        this(rules, RuleSet.v2());
     }
 
     public DistanceEngine(BillingRules rules, RuleSet ruleSet) {

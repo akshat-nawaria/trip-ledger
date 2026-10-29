@@ -48,7 +48,7 @@ class TripApiIntegrationTest extends ApiTestBase {
 
         JsonNode distance = getJson("/v1/trips/{id}/distance", tripId);
         assertThat(distance.get("status").asText()).isEqualTo("COMPUTED");
-        assertThat(distance.get("ruleVersion").asText()).isEqualTo("v1");
+        assertThat(distance.get("ruleVersion").asText()).isEqualTo("v2");
         assertThat(Double.parseDouble(distance.get("billableKm").asText())).isCloseTo(TestEvidence.EXPECTED_KM, within(0.05));
         assertThat(distance.get("routing").get("requests").asInt()).isEqualTo(1);
         assertThat(distance.get("routing").get("providerCalls").asInt()).isEqualTo(1);

@@ -63,13 +63,20 @@ public final class SegmentContext {
     /**
      * Straight-line speed in km/h.
      *
-     * Zero-second gaps happen when an anchor lands on the exact second of a ping. If they're
-     * within GPS accuracy of each other (50 m by default) that's just the same spot, call it 0.
-     * Further apart at the same instant is physically impossible, so: infinite.
+     * Two points no further apart than GPS accuracy (50 m by default) prove nothing about
+     * movement - the phone's own error is that big. So that counts as standing still (0), however
+     * short the time between them. Typical case: the driver app logs a drop 0.1 s after a ping and
+     * 20 m away. Divide 20 m by 0.1 s and you get 720 km/h, which used to flag a perfectly normal
+     * drop for review (rule set v1). The benchmark showed that happening ~0.6 times per trip.
+     *
+     * Further apart than GPS accuracy at the very same instant is physically impossible: infinite.
      */
     public double aerialSpeedKmph() {
+        if (aerialMetres <= rules.maxAccuracyMetres()) {
+            return 0.0;
+        }
         if (gap.isZero()) {
-            return aerialMetres <= rules.maxAccuracyMetres() ? 0.0 : Double.POSITIVE_INFINITY;
+            return Double.POSITIVE_INFINITY;
         }
         return speedKmph(aerialMetres);
     }

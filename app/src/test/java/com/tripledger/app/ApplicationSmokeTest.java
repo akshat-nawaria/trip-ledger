@@ -29,7 +29,7 @@ class ApplicationSmokeTest {
     void infoEndpointShowsRuleSetVersionFromCore() throws Exception {
         mockMvc.perform(get("/actuator/info"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.ruleSetVersion").value("v1"));
+                .andExpect(jsonPath("$.ruleSetVersion").value("v2"));
     }
 
     // proves the routing beans wire up from application.yml and the breaker starts closed
