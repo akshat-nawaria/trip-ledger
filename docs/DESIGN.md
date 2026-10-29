@@ -287,7 +287,8 @@ Rule 0 exists because a road is never shorter than the straight line: if even th
 | `GET` | `/v1/trips/{tripId}/adjustments` | OPERATOR, ADMIN | Signed deltas after billing *(S7)* |
 | `POST` | `/v1/trips/{tripId}/recompute` | ADMIN | Force a recompute (idempotent) *(S7)* |
 | `GET` | `/v1/trips?status=DEGRADED` | ADMIN | Recovery backlog |
-| `PUT` | `/v1/tenant/config` | ADMIN | Flags and thresholds; creates a new config version *(S6)* |
+| `GET`, `PUT` | `/v1/tenant/config` | ADMIN | Billing settings; every save creates a new version *(S6)* |
+| `POST` | `/v1/dev/tokens` | anyone, local only | Token for any tenant / role, when `dev-tokens=true` *(S6)* |
 | `GET` | `/actuator/health`, `/actuator/prometheus` | Internal | Health and metrics |
 
 ### 6.1 Example: ingest
@@ -437,14 +438,20 @@ sequenceDiagram
 
 | Role | Can do |
 |---|---|
-| `EMPLOYEE` | Read the km summary of own trips only |
-| `OPERATOR` | Ingest evidence for own fleet; read trips and breakdowns |
-| `ADMIN` | Everything inside own tenant: config, recompute, adjustments |
+| `EMPLOYEE` | Read the km of trips they rode in (their ref is in the trip's milestones or plan). Nothing else |
+| `OPERATOR` | Upload evidence; read any trip of their company and its breakdown |
+| `ADMIN` | Everything inside their company: trip list, billing settings (and recompute / adjustments in S7) |
 
-- JWT (RS256) with `sub`, `tenant_id`, `roles`. A development issuer is provided for local runs.
-- Tenant isolation is enforced twice: by the service layer and by PostgreSQL row-level security (`SET LOCAL app.tenant_id`).
-- Another tenant's trip returns **404**, not 403, so its existence is not revealed.
-- No personal data in logs: employees appear only as HMAC tokens; home coordinates are never logged; a masking converter strips phone and email patterns.
+**As built (S6):**
+
+- Every `/v1` call needs a JWT bearer token with `sub`, `tenant_id` and `roles` (`SecurityConfig`). Signed HS256 with a shared secret for local runs; in production the decoder would verify the company login system's tokens with its public keys instead — nothing else changes.
+- Tokens without a valid `tenant_id` or with unknown roles are rejected at the door (`TenantClaimValidator`), as are expired, foreign-signed or foreign-issuer tokens — all `401`.
+- The tenant comes **only** from the token (`CurrentCaller`), never from a path, header or body, and every query filters on it. Another tenant's trip returns **404**, not 403, so its existence is not revealed; the same trip id can exist in two companies without clashing.
+- Stateless: no sessions, no cookies, so CSRF protection is off by design.
+- Per-company billing settings (`/v1/tenant/config`, Flyway `V2`): append-only versions; each run stores `config_version`; settings are part of the evidence fingerprint, so a change applies from a trip's next computation and never edits a saved run.
+- Errors: one shape everywhere (`Problems`): RFC 7807 + stable `code` + `traceId`. The trace id is created per request (`TraceIdFilter`), returned in `X-Trace-Id`, and printed on every log line. A 500 tells the client nothing internal; the real exception is logged under the trace id.
+- No personal data in logs: request bodies are never logged; employees are opaque refs; a test scans the log output of a full upload + read for the employee ref and the drop coordinates.
+- **Not built:** PostgreSQL row-level security as a second wall (needs the tenant set on every pooled connection). With a single service whose every query filters by tenant and is covered by cross-tenant tests, it was left for later — see trade-offs.
 
 ---
 
@@ -492,6 +499,7 @@ For n ≈ 1,500 pings a trip holds about 40 KB in primitive form. Trips are inde
 | Rejected segment | Pay straight line only | A real detour may be under-paid | Flagged for human review |
 | Job queue | PostgreSQL `SKIP LOCKED` | Kafka-scale throughput | One fewer system; one-command run |
 | Integer millimetres | Slightly more code | — | Exact, order-independent sums |
+| Tenant isolation in the app only | Simplicity, one fewer moving part | A second wall (row-level security) | Single service; tenant from the token only; every query filtered; cross-tenant tests |
 
 ---
 
@@ -506,6 +514,7 @@ Full HMM map-matching of every ping · live distance during the trip · GPS-spoo
 | Date | Segment | Change |
 |---|---|---|
 | 2026-10-29 | S1 | First version |
+| 2026-10-29 | S6 | Security as built: HS256 JWT (not RS256) for local runs, roles per endpoint, employee own-trip rule, tenant only from the token, 404 across tenants; versioned per-tenant settings (`V2`, `config_version` on runs); uniform problem+json with `code` + `traceId`; row-level security not built (trade-off) |
 | 2026-10-29 | S5 | Database + REST API built: Flyway `V1` schema keyed by (`tenant_id`, `trip_id`); Spring JDBC repositories (not JPA); idempotent, multi-part ingest; evidence fingerprint lets an unchanged trip reuse its saved run (no new routing calls); compute runs inline after upload until S7; tests use a real PostgreSQL (Compose locally, service container in CI) instead of Testcontainers |
 | 2026-10-29 | S4 | Routing layer built inside `app` (no separate mock-router service): grid snap to cell centres, Caffeine cache in front of a Resilience4j breaker, per-trip `RoutingUsage`. Geometry guard replaced by cell-centre snapping; batching dropped (A27); L2 Redis left optional |
 | 2026-10-29 | S3 | Pings outside the trip window (± clock-skew tolerance) are dropped first, via `CleaningPipeline.forTrip`. Same-second points within 50 m count as one spot. `TripDistance` now also records `routeRequests` and the route answers it paid on (`routesUsed`), ready for pinning in S7 |

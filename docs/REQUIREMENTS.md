@@ -12,7 +12,7 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 | R01 | Ingest pings (lat, lon, timestamp, accuracy), milestones, planned stops, office | S5 | Evidence API integration test | [x] `POST /v1/trips/{id}/evidence`, idempotent, multi-part uploads (`TripApiIntegrationTest`) |
 | R02 | Remove duplicates, sort by time, drop low-accuracy fixes, drop teleports (> 120 km/h, configurable) | S2 | One unit test per filter; 9 km in 4 s burst dropped | [x] |
 | R03 | Employee anchor: actual point → ad-hoc profile home + sign-in time → planned location + planned time | S3 | Three fallback-branch tests | [x] |
-| R04 | No-show anchor behind a config flag (no-show location, else planned) | S3 | Flag on / off tests | [x] |
+| R04 | No-show anchor behind a config flag (no-show location, else planned) | S3 | Flag on / off tests | [x] Flag per company via `PUT /v1/tenant/config`, versioned (S6) |
 | R05 | Office anchor: actual trip end only if within 400 m of planned office, else planned office + trip-end time | S3 | 399 m vs 401 m test | [x] |
 | R06 | Short gap (< 70 s, plausible speed) and parked (< 5 km/h) use straight-line distance | S3 | 69 s / 70 s and 4.9 / 5.1 km/h tests | [x] |
 | R07 | Real gaps use routed driving distance; reject if > 100 km or speed rule fails | S3 | 100 km / 100.1 km and speed tests | [x] |
@@ -30,14 +30,14 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 
 | ID | Requirement | Segment | Proof | Done |
 |----|-------------|---------|-------|------|
-| P01 | Authentication, roles (employee / operator / admin), tenant isolation | S6 | Cross-tenant read returns 404 | [ ] |
+| P01 | Authentication, roles (employee / operator / admin), tenant isolation | S6 | Cross-tenant read returns 404 | [x] JWT + roles per endpoint; employees see only own trips; other tenant = 404 (`SecurityIntegrationTest`) |
 | P02 | Time and space complexity, small benchmark, where it stops scaling | S1, S9 | DESIGN.md + benchmark | [ ] |
 | P03 | Fault tolerance: crashes, timeouts, duplicates, out-of-order, partial failure; one failure-injection test | S5, S7 | Crash + duplicate tests | [~] Duplicates, retries, split uploads and provider outage covered by API tests (S5); crash/lease recovery in S7 |
 | P04 | OOP: encapsulation, inheritance, polymorphism; controller / service / repository | S2–S5 | Core runs with no Spring | [x] `TripController` → `EvidenceService` / `DistanceService` / `TripQueryService` → repositories; `CoreModuleIsolationTest` |
 | P05 | Documented trade-offs (consistency vs availability vs latency), what was left out | S1, S10 | README section | [ ] |
 | P06 | Metrics + structured logging: lag, error rate, rejections, retries, queue depth | S8 | Grafana dashboard | [ ] |
 | P07 | Caching with eviction policy; what can go stale, for how long, how it is bounded | S4 | Staleness table | [ ] |
-| P08 | Error handling with non-leaking messages; no personal data in logs or errors | S6 | Log-scan test | [ ] |
+| P08 | Error handling with non-leaking messages; no personal data in logs or errors | S6 | Log-scan test | [x] problem+json with `code` + `traceId`; 500s say nothing internal; log scan finds no employee refs or coordinates (`ErrorHandlingIntegrationTest`) |
 
 ## Advanced track
 

@@ -38,4 +38,9 @@ Every value marked *configurable* lives in `application.yml` (and in the core `B
 | A32 | Coordinates at the API | Not range-checked on upload. Junk GPS is normal and is removed (and counted) by the cleaning filters instead | — |
 | A33 | Idempotency-Key scope | Per trip. Same key + same body = replay (202, nothing redone); same key + different body = 409 | — |
 | A34 | When km are computed | Straight after each upload (S5). S7 moves this to a background job; the API does not change | — |
+| A35 | Token signing | HS256 with a shared secret (`JWT_SECRET`), issuer `tripledger`. Production would verify the company login system's tokens with its public keys; only the decoder bean changes | Yes |
+| A36 | Dev token endpoint | `POST /v1/dev/tokens` exists only while `tripledger.security.dev-tokens=true` (local default). Must be false anywhere real | Yes |
+| A37 | "Own trip" for an employee | The employee's ref appears in the trip's milestones or plan. Anything else is reported as 404 | — |
+| A38 | Tenant settings | Five values per company: no-show flag, max accuracy, max speed, office radius, max route. Each save is a new version; it applies from a trip's next computation and never edits saved runs | — |
+| A39 | Tenant isolation | Tenant comes only from the token; every query filters on it; a cross-tenant read is 404. PostgreSQL row-level security is not built (see DESIGN trade-offs) | — |
 | A28 | Provider contract | A provider returns a real distance or throws `RoutingException`. Any other exception is a bug and fails loudly instead of quietly degrading a bill | — |

@@ -11,7 +11,7 @@
 | Circuit breaker, retries, rate limits | Resilience4j, used as a plain library (no annotations), so the breaker is unit-tested without starting Spring |
 | Route caching | Caffeine: in-process, one load per key even under concurrency, hit-rate stats built in |
 | Metrics and structured logs | Spring Actuator + Micrometer → Prometheus → Grafana |
-| Auth, roles, tenant isolation | Spring Security (JWT resource server) + PostgreSQL row-level security |
+| Auth, roles, tenant isolation | Spring Security OAuth2 resource server: JWT with `tenant_id` + `roles`, rules per endpoint; tenant filter in every query |
 | Real-database tests | Tests run against a real PostgreSQL: the Docker Compose one locally, a service container in CI. (Testcontainers 1.x, the version Spring Boot 3.5 ships, cannot talk to Docker Engine 29+, so it was left out) |
 | One-command run | Docker Compose starts the app, database and tools |
 
