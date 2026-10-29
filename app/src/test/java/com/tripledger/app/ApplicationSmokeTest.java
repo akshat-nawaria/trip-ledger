@@ -10,7 +10,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** Proves the service starts, reports healthy, and is wired to the core module. */
+// quick sanity check: app boots, says it's healthy, and can see the core module
 @SpringBootTest
 @AutoConfigureMockMvc
 class ApplicationSmokeTest {

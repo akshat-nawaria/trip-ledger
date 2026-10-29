@@ -1,17 +1,17 @@
 package com.tripledger.core;
 
 /**
- * Identity of the distance engine.
+ * Which version of the rules this engine runs.
  *
- * <p>The rule-set version is stored with every computed result. Two runs with the same input and
- * the same rule-set version must always produce exactly the same kilometres.
+ * Gets saved with every result. Same input + same version should always give
+ * exactly the same km - that's the promise we make to vendors.
  */
 public final class EngineInfo {
 
-    /** Version of the ordered segment rules. Change it whenever a rule or its order changes. */
+    // bump this whenever a rule (or the order of the rules) changes, so old bills keep their old version
     public static final String RULE_SET_VERSION = "v1";
 
     private EngineInfo() {
-        // constants only
+        // just constants, no instances
     }
 }

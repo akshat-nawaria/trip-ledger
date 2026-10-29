@@ -5,7 +5,7 @@ import org.springframework.boot.actuate.info.Info;
 import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.stereotype.Component;
 
-/** Shows which rule-set version this running service uses, at {@code GET /actuator/info}. */
+// adds the rule-set version to GET /actuator/info, so you can see which rules a running server uses
 @Component
 public class EngineInfoContributor implements InfoContributor {
 
