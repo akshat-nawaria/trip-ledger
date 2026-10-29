@@ -9,7 +9,7 @@ MoveInSync Backend Case Study 2026 · Case Study 1 · Advanced Track.
 Rebuilds a trustworthy, explainable billable distance for every cab trip from unreliable GPS data.
 Every kilometre carries the rule that produced it, the same input always gives the same answer, and paid routing calls are kept to a minimum.
 
-> Status: **Segment S0 complete** — project skeleton, CI and database. See [docs/ROADMAP.md](docs/ROADMAP.md).
+> Status: **Segments S0–S1 complete** — project skeleton, CI, database and the design note. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Quick start
 
@@ -42,6 +42,7 @@ docs/   requirements tracker, assumptions, stack choice, roadmap, design note
 
 ## Documents
 
+- [Design note](docs/DESIGN.md) — architecture, data model, APIs, rule order, failure modes, trade-offs
 - [Requirements tracker](docs/REQUIREMENTS.md) — every PDF item, where it is built, how it is proved
 - [Assumptions](docs/ASSUMPTIONS.md) — decisions where the PDF is open
 - [Technology choice](docs/STACK.md) — why Java 21 + Spring Boot
@@ -49,7 +50,6 @@ docs/   requirements tracker, assumptions, stack choice, roadmap, design note
 
 ## Sections still to come
 
-- Design note (S1)
 - API reference and sample calls (S5, S10)
 - Benchmark results and machine (S9)
 - Trade-offs and what was left out (S10)

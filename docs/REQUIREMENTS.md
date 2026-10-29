@@ -45,8 +45,8 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 |----|-------------|---------|-------|------|
 | A01 | Every hard rule has an automated test, incl. one concurrency test and one failure test | S2–S7 | CI green | [ ] |
 | A02 | Load test with throughput and p50 / p99, machine stated | S9 | k6 results in README | [ ] |
-| A03 | Design note: architecture diagram, sequence diagram, failure-mode table | S1 | `docs/DESIGN.md` | [ ] |
-| A04 | One-command run (`docker compose up`) incl. database | S0, S8 | Fresh-clone test | [ ] |
+| A03 | Design note: architecture diagram, sequence diagram, failure-mode table | S1 | `docs/DESIGN.md` | [x] |
+| A04 | One-command run (`docker compose up`) incl. database | S0, S8 | Fresh-clone test | [~] database done (S0); app added in S8 |
 
 ## Submission instructions
 

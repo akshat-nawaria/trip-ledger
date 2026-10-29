@@ -3,7 +3,7 @@
 | Segment | Name | Instructions covered | Status |
 |---|---|---|---|
 | S0 | Understand & set up (tracker, assumptions, stack, repo, CI, Docker) | 1, 2, 7 | Done |
-| S1 | Design note (data model, components, APIs, failure modes) | 3 | Pending |
+| S1 | Design note (data model, components, APIs, failure modes) | 3 | Done |
 | S2 | Core domain & cleaning filters | 4, 5 | Pending |
 | S3 | Anchors & segment rule engine | 4, 5 | Pending |
 | S4 | Routing layer: cache, breaker, mock provider | 4, 5 | Pending |
