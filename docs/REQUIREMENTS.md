@@ -11,17 +11,17 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 |----|-------------|---------|-------|------|
 | R01 | Ingest pings (lat, lon, timestamp, accuracy), milestones, planned stops, office | S5 | Evidence API integration test | [ ] |
 | R02 | Remove duplicates, sort by time, drop low-accuracy fixes, drop teleports (> 120 km/h, configurable) | S2 | One unit test per filter; 9 km in 4 s burst dropped | [x] |
-| R03 | Employee anchor: actual point → ad-hoc profile home + sign-in time → planned location + planned time | S3 | Three fallback-branch tests | [ ] |
-| R04 | No-show anchor behind a config flag (no-show location, else planned) | S3 | Flag on / off tests | [ ] |
-| R05 | Office anchor: actual trip end only if within 400 m of planned office, else planned office + trip-end time | S3 | 399 m vs 401 m test | [ ] |
-| R06 | Short gap (< 70 s, plausible speed) and parked (< 5 km/h) use straight-line distance | S3 | 69 s / 70 s and 4.9 / 5.1 km/h tests | [ ] |
-| R07 | Real gaps use routed driving distance; reject if > 100 km or speed rule fails | S3 | 100 km / 100.1 km and speed tests | [ ] |
-| R08 | Every segment carries the rule that produced it (SHORT_GAP_AERIAL, PARKED, ROUTED, REJECTED_SPEED…) | S3 | Breakdown endpoint shows labels | [ ] |
+| R03 | Employee anchor: actual point → ad-hoc profile home + sign-in time → planned location + planned time | S3 | Three fallback-branch tests | [x] |
+| R04 | No-show anchor behind a config flag (no-show location, else planned) | S3 | Flag on / off tests | [x] |
+| R05 | Office anchor: actual trip end only if within 400 m of planned office, else planned office + trip-end time | S3 | 399 m vs 401 m test | [x] |
+| R06 | Short gap (< 70 s, plausible speed) and parked (< 5 km/h) use straight-line distance | S3 | 69 s / 70 s and 4.9 / 5.1 km/h tests | [x] |
+| R07 | Real gaps use routed driving distance; reject if > 100 km or speed rule fails | S3 | 100 km / 100.1 km and speed tests | [x] |
+| R08 | Every segment carries the rule that produced it (SHORT_GAP_AERIAL, PARKED, ROUTED, REJECTED_SPEED…) | S3 | Breakdown endpoint shows labels | [x] |
 | R09 | Cache routing by snapped cells, batch requests, report calls per trip | S4 | Calls before / after cache | [ ] |
-| R10 | Provider down: open circuit, haversine × 1.4, mark trip DEGRADED, auto-recompute on recovery | S4, S7 | Provider killed mid-run test | [ ] |
+| R10 | Provider down: open circuit, haversine × 1.4, mark trip DEGRADED, auto-recompute on recovery | S4, S7 | Provider killed mid-run test | [~] DEGRADED + x1.4 done (S3); breaker and auto-recompute in S4/S7 |
 | R11 | Idempotent recompute: same input + same rule version = same km | S7 | Run twice → identical | [ ] |
 | R12 | Late pings after billing produce a signed delta, never edit a closed invoice | S7 | Late-ping test | [ ] |
-| R13 | Deterministic, versioned rule order | S3 | Golden-file test | [ ] |
+| R13 | Deterministic, versioned rule order | S3 | Golden-file test | [x] |
 | R14 | State units and rounding (how and when) | S2, S3 | Order-independence test | [x] |
 | R15 | Show provider-call count before and after caching | S4, S9 | README table | [ ] |
 | R16 | Benchmark 10,000 trips × ~1,500 pings: run time + memory, provider failure halfway | S9 | `bench/results.md` | [ ] |

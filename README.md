@@ -9,7 +9,7 @@ MoveInSync Backend Case Study 2026 · Case Study 1 · Advanced Track.
 Rebuilds a trustworthy, explainable billable distance for every cab trip from unreliable GPS data.
 Every kilometre carries the rule that produced it, the same input always gives the same answer, and paid routing calls are kept to a minimum.
 
-> Status: **Segments S0–S2 complete** — project skeleton, CI, database, design note, and the core domain with GPS cleaning (72 unit tests). See [docs/ROADMAP.md](docs/ROADMAP.md).
+> Status: **Segments S0–S3 complete** — the full distance engine works: cleaning, anchor points, rules 0–6, and the case-study underpass trip comes out at **30.61 km** (naive sum 18.4 km) with **2 routing calls**. 123 unit tests. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Quick start
 
@@ -46,6 +46,9 @@ docs/   requirements tracker, assumptions, stack choice, roadmap, design note
 |---|---|---|
 | Exact distances | `GeoPoint` (micro-degrees), `Distance` (integer mm), `Haversine` (StrictMath) | `GeoPointTest`, `DistanceTest`, `HaversineTest` |
 | One place for every threshold | `BillingRules` (case-study defaults + builder) | `BillingRulesTest` |
+| Anchor points | `EmployeeAnchorResolver` (actual → profile home → planned), `NoShowAnchorResolver` (behind a flag), `OfficeAnchorResolver` (400 m rule) | One test class per resolver |
+| Segment rules 0–6 | `ImpossibleSpeedRule`, `ShortGapRule`, `ParkedRule`, `RoutingUnavailableRule`, `RouteTooLongRule`, `RouteTooFastRule`, `RoutedRule` in `RuleSet.v1()` | `RuleSetTest` (every boundary: 69/70 s, 4.9/5.1 km/h, 100 km) |
+| The engine | `DistanceEngine.compute(evidence, routeLookup)` → `TripDistance` with a label on every segment | `DistanceEngineTest` (underpass 18.4 → 30.61 km, outage → DEGRADED, shuffled input → identical result) |
 | GPS cleaning | `InvalidCoordinateFilter` → `DuplicateFilter` → `TimeOrderFilter` → `AccuracyFilter` → `TeleportFilter`, run by `CleaningPipeline` | One test class per filter + `CleaningPipelineTest` (shuffled 1,000× → same result) |
 
 Run only the engine tests (fast, no database needed):

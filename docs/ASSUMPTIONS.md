@@ -23,4 +23,8 @@ Every value marked *configurable* lives in `application.yml` (and in the core `B
 | A16 | Rule-set version | `v1`; a result always stores the rule-set version and a hash of the config it used | — |
 | A17 | Duplicate pings | One ping per timestamp; on conflict the most accurate wins, then lowest device sequence | — |
 | A18 | Invalid coordinates | Out-of-range points and (0, 0) are dropped before any other step | — |
+| A20 | Who gets an employee anchor | Only employees with a PICKUP or DROP milestone. A roster entry with no milestone is no proof the employee rode, so no detour is added | — |
+| A21 | Same-second points | An anchor and a ping at the same second within GPS accuracy (50 m) are treated as the same spot (speed 0); further apart at the same instant is impossible | — |
+| A22 | Office event sent twice | Latest TRIP_END (login) / earliest TRIP_START (logout) is used; ones with a timestamp win | — |
+| A23 | Missing office event | The planned office is anchored at the window end (login) or window start (logout) | — |
 | A19 | Teleport re-anchor | 3 consistent suspicious pings in a row replace the accepted pings they contradict, but only if those are fewer | Yes |

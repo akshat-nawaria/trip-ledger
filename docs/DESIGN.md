@@ -496,4 +496,5 @@ Full HMM map-matching of every ping · live distance during the trip · GPS-spoo
 | Date | Segment | Change |
 |---|---|---|
 | 2026-10-29 | S1 | First version |
+| 2026-10-29 | S3 | Pings outside the trip window (± clock-skew tolerance) are dropped first, via `CleaningPipeline.forTrip`. Same-second points within 50 m count as one spot. `TripDistance` now also records `routeRequests` and the route answers it paid on (`routesUsed`), ready for pinning in S7 |
 | 2026-10-29 | S2 | Added step 0 (drop invalid coordinates) before dedupe; specified dedupe tie-breaks and the re-anchor guard's "majority wins" rule |
