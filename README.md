@@ -125,6 +125,7 @@ Another company's trip is always **404**, never 403, so its existence is not rev
 | Grafana panels say "No data" | The app hasn't been scraped yet, or nothing happened yet | Wait 10 s, then upload a trip from the demo console |
 | The map in the console stays grey | The map tiles and Leaflet come from the internet | Everything else still works offline |
 | The console still looks like an older version | The browser cached the old page | Press Ctrl + F5 |
+| `JobsIntegrationTest` fails with "expected 1 but was 0" only on your machine | The `app` container from `docker compose up` is running, and its background worker takes the tests' jobs from the shared database | `docker compose stop app`, run `mvn verify`, then `docker compose up -d` |
 
 ## The case study examples, as tests
 

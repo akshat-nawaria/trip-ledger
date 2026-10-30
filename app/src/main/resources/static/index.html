@@ -117,9 +117,6 @@
   .table-foot { padding: 12px 24px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line-soft); }
 
   /* ---------- trips screen ---------- */
-  .demo-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 24px; flex-wrap: wrap; }
-  .demo-card p { margin: 4px 0 0; color: var(--muted); }
-  .demo-card .actions { display: flex; gap: 12px; flex-wrap: wrap; }
   .filters { display: flex; gap: 4px; flex-wrap: wrap; }
   .filters button { border: 0; background: none; color: var(--muted); font-weight: 500; padding: 7px 14px; border-radius: var(--radius-sm); }
   .filters button:hover { color: var(--text); }
@@ -127,6 +124,41 @@
   .search { width: 280px; }
   .inline-form { display: flex; gap: 10px; flex-wrap: wrap; }
   .inline-form .input { flex: 1 1 220px; }
+
+  /* ---------- scenario lab ---------- */
+  .lab { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding: 20px 24px 24px; }
+  .tile { border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: #FCFDFC; }
+  .tile:hover { border-color: #CBD3CF; }
+  .tile-top { display: flex; gap: 6px; }
+  .tile h3 { margin: 2px 0 0; font-size: 15px; }
+  .tile p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+  .tile p b { color: var(--text); font-weight: 600; }
+  .tile .btn { margin-top: auto; align-self: flex-start; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; white-space: nowrap; vertical-align: middle; }
+  .tag.base { background: var(--gray-soft); color: var(--muted); }
+  .tag.gps { background: var(--blue-soft); color: var(--blue); }
+  .tag.data { background: var(--amber-soft); color: var(--amber); }
+  .tag.map { background: var(--red-soft); color: var(--red); }
+  .tag.bill { background: var(--green-soft); color: var(--green-dark); }
+  .tag.all { background: #EFEDFF; color: #5B4BC4; }
+  td .tag { margin-left: 8px; }
+  .scen { padding: 20px 24px; border-left: 4px solid var(--blue); }
+  .scen-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .scen-head h2 { margin: 0; font-size: 16px; }
+  .scen-head .pill { margin-left: auto; }
+  .scen-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 32px; }
+  .scen-body p { margin: 6px 0 0; font-size: 13.5px; }
+  .scen ul { list-style: none; padding: 0; margin: 10px 0 0; }
+  .sent li { padding: 3px 0; font-size: 13.5px; color: var(--muted); }
+  .sent li::before { content: '\2022'; color: var(--faint); margin-right: 8px; }
+  .checks li { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; }
+  .checks li:last-child { border-bottom: 0; }
+  .checks .mark { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; }
+  .checks .ok .mark { background: var(--green-soft); color: var(--green-dark); }
+  .checks .bad .mark { background: var(--red-soft); color: var(--red); }
+  .checks .wait .mark { background: var(--gray-soft); color: var(--muted); }
+  .checks .val { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; padding-left: 12px; }
+  .scen-action { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; padding: 12px 16px; border-radius: 8px; background: var(--amber-soft); color: var(--amber); font-size: 13.5px; flex-wrap: wrap; }
 
   /* ---------- trip detail ---------- */
   .trip-head { display: flex; align-items: center; gap: 16px; padding: 18px 24px; flex-wrap: wrap; }
@@ -158,6 +190,22 @@
   .seg .when { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
   .seg .look { color: var(--red); font-size: 12px; font-weight: 500; }
   .seg .km { font-weight: 700; white-space: nowrap; }
+  button.seg { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+  button.seg:hover { border-color: var(--green); }
+  button.seg.active { border-color: var(--green); box-shadow: 0 0 0 2px #CDE8C4; background: #fff; }
+  .seg-hint { color: var(--muted); font-size: 12.5px; }
+  .gaps { display: flex; flex-direction: column; gap: 12px; }
+  .gap-banner { display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-left: 4px solid var(--green); }
+  .gap-banner.warn { border-left-color: var(--amber); }
+  .gap-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--green-soft); color: var(--green-dark); display: grid; place-items: center; flex: none; }
+  .gap-banner.warn .gap-icon { background: var(--amber-soft); color: var(--amber); }
+  .gap-icon svg { width: 22px; height: 22px; }
+  .gap-text { flex: 1; min-width: 0; }
+  .gap-title { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+  .gap-banner .muted { font-size: 13.5px; }
+  .gap-banner .muted b { color: var(--text); }
+  .legend i.ring { background: #fff; border: 2px solid; width: 10px; height: 10px; }
+  .leaflet-tooltip.gap-tip { font-weight: 600; font-size: 12px; padding: 2px 8px; }
   .seg.hops { border-style: dashed; background: #fff; }
   .seg.hops .lbl { color: var(--muted); }
   .rows { margin-top: 6px; }
@@ -251,7 +299,10 @@
     #map { height: 480px; }
     .set-grid { grid-template-columns: 1fr; }
   }
+  @media (max-width: 1400px) { .lab { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 1050px) {
+    .lab { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .scen-body { grid-template-columns: 1fr; gap: 16px; }
     .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .ext { display: none; }
   }
@@ -273,11 +324,15 @@
     #view-trips .stat .note { font-size: 12.5px; }
     .hide-sm { display: none; }
     .search { width: 100%; }
-    .card-head, .demo-card, .trip-head, .inv-top, .side .card, .pad, .field { padding-left: 16px; padding-right: 16px; }
-    .demo-card .actions, .demo-card .actions .btn { width: 100%; }
+    .card-head, .trip-head, .inv-top, .side .card, .pad, .field { padding-left: 16px; padding-right: 16px; }
     .trip-head .actions { margin-left: 0; width: 100%; }
     .trip-head .actions .btn { flex: 1; }
     .back { border-right: 0; padding-right: 0; width: 100%; }
+    .lab { grid-template-columns: 1fr; padding: 16px; }
+    .scen { padding: 16px; }
+    .checks .val { white-space: normal; text-align: right; }
+    .gap-banner { flex-wrap: wrap; padding: 14px 16px; }
+    .gap-banner .btn { width: 100%; }
     #map { height: 360px; }
     .inv-sum { margin: 0; gap: 12px; }
     .inv-sum .v { font-size: 20px; }
@@ -317,15 +372,12 @@
           <div class="value" style="font-size:24px" id="c-map">-</div><div class="note" id="c-map-note">-</div></div>
       </div>
 
-      <div class="card demo-card">
-        <div>
-          <h2>Try it with a demo trip</h2>
-          <p>9 km of pings, then 22 minutes with no GPS while employee e-104 is dropped, then 7 km more. The bad-fix version also has two pings that jump 9 km away.</p>
+      <div class="card">
+        <div class="card-head">
+          <div><h2>Scenario lab: one problem per trip</h2>
+            <p class="sub">Each button uploads a trip with one kind of bad GPS data (or one failure), then opens it and checks what TripLedger did about it.</p></div>
         </div>
-        <div class="actions">
-          <button class="btn" id="btn-badfix">Upload trip with bad GPS fix</button>
-          <button class="btn primary" id="btn-sample">Upload sample trip</button>
-        </div>
+        <div class="lab" id="lab"></div>
       </div>
 
       <!-- operators can't list trips (that's admin only), so they open one by ID instead -->
@@ -365,11 +417,15 @@
         </div>
       </div>
 
+      <div class="card scen" id="d-scenario" hidden></div>
+
       <div class="grid-3">
         <div class="card stat"><div class="label">Billable distance</div><div class="value green" id="d-km">-</div><div class="note" id="d-km-note"></div></div>
         <div class="card stat"><div class="label">Paid routing calls</div><div class="value" id="d-calls">-</div><div class="note" id="d-calls-note"></div></div>
         <div class="card stat"><div class="label">Calculation status</div><div><span class="pill" id="d-status2">-</span></div><div class="note" id="d-status-note"></div></div>
       </div>
+
+      <div id="d-gaps" class="gaps" hidden></div>
 
       <div class="detail-main">
         <div class="card map-card">
@@ -383,6 +439,8 @@
             <span><i class="dash" style="border-color:#2B6CB0"></i>Parked</span>
             <span><i class="round" style="background:#171717"></i>Office</span>
             <span><i class="round" style="background:#1F5C14"></i>Employee stop</span>
+            <span><i class="round ring" style="border-color:#B7791F"></i>GPS lost</span>
+            <span><i class="round ring" style="border-color:#43B02A"></i>GPS back</span>
           </div>
         </div>
 
@@ -525,7 +583,7 @@
     <p class="role-hint" id="si-hint"></p>
     <div id="si-emp-wrap" hidden>
       <label for="si-emp">Employee ID</label>
-      <input class="input mono" id="si-emp" value="e-104" autocomplete="off">
+      <input class="input mono" id="si-emp" value="EMP-2417" autocomplete="off">
     </div>
     <button class="btn primary" id="si-go">Continue</button>
     <p class="err" id="si-err" hidden></p>
@@ -545,7 +603,7 @@
 const ROLES = {
   admin:    { label: 'Admin+Operator', roles: ['ADMIN', 'OPERATOR'], hint: 'Sees everything: all trips, billing, system and settings.' },
   operator: { label: 'Operator', roles: ['OPERATOR'], hint: 'Uploads trips and reads their breakdown. Can\'t list trips, bill or change settings.' },
-  employee: { label: 'Employee', roles: ['EMPLOYEE'], hint: 'Only the km of trips this employee rode in. Demo trips drop e-104.' }
+  employee: { label: 'Employee', roles: ['EMPLOYEE'], hint: 'Only the km of trips this employee rode in. Demo trips drop EMP-2417.' }
 };
 const RULE_COLORS = { SHORT_GAP_AERIAL: '#8FA69A', ROUTED: '#43B02A', DEGRADED_AERIAL: '#B7791F', PARKED: '#2B6CB0', REJECTED_SPEED: '#C53030', REJECTED_DISTANCE: '#C53030' };
 const CLEANING_LABELS = {
@@ -567,6 +625,7 @@ const state = {
   pingsByTrip: {},          // pings we uploaded from this page, for the "just adding up pings" comparison
   lastLate: {},             // what we need to send more late pings for a trip uploaded here
   opened: [],               // operator: trips opened in this browser
+  scenarios: {},            // tripId -> which scenario made it, what was sent (for the panel and the checks)
   detail: null              // last loaded { dist, br, adj } for the open trip
 };
 const $ = (id) => document.getElementById(id);
@@ -621,9 +680,9 @@ async function issueToken(choice) {
 // ---------- sign-in ----------
 let pickedRole = 'admin';
 function openSignIn() {
-  const c = state.choice || store.get('signin') || { tenant: 'acme', role: 'admin', employeeRef: 'e-104' };
+  const c = state.choice || store.get('signin') || { tenant: 'acme', role: 'admin', employeeRef: 'EMP-2417' };
   $('si-tenant').value = c.tenant;
-  $('si-emp').value = c.employeeRef || 'e-104';
+  $('si-emp').value = c.employeeRef || 'EMP-2417';
   pickRole(c.role);
   $('si-err').hidden = true;
   $('signin').hidden = false;
@@ -637,7 +696,7 @@ function pickRole(role) {
 }
 async function submitSignIn(ev) {
   ev.preventDefault();
-  const choice = { tenant: $('si-tenant').value.trim() || 'acme', role: pickedRole, employeeRef: $('si-emp').value.trim() || 'e-104' };
+  const choice = { tenant: $('si-tenant').value.trim() || 'acme', role: pickedRole, employeeRef: $('si-emp').value.trim() || 'EMP-2417' };
   $('si-go').classList.add('busy');
   try {
     await signIn(choice);
@@ -655,6 +714,7 @@ async function signIn(choice) {
   store.set('signin', choice);
   if (changed) { state.kmCache = {}; state.trips = []; state.status = null; state.detail = null; }
   state.opened = store.get('opened.' + choice.tenant) || [];
+  state.scenarios = store.get('scenarios.' + choice.tenant) || {};
   $('who-tenant').textContent = choice.tenant;
   $('who-role').textContent = choice.role === 'employee' ? 'Employee ' + choice.employeeRef : ROLES[choice.role].label;
   document.querySelectorAll('.admin-only').forEach(el => el.hidden = !isAdmin());
@@ -681,12 +741,12 @@ function route() {
 
   if (section === 'employee') { if (tripId) { $('emp-id').value = tripId; lookUpAsEmployee(tripId); } }
   else if (section === 'detail') openTrip(tripId);
-  else if (section === 'trips') { renderTripTable(); refreshTrips(); refreshStatus(); }
+  else if (section === 'trips') { renderLab(); renderTripTable(); refreshTrips(); refreshStatus(); }
   else if (section === 'system') refreshSystem();
   else if (section === 'settings') loadSettings();
 }
 
-// ---------- the demo trip (same geometry as the tests' underpass trip) ----------
+// ---------- geometry helpers ----------
 const M_PER_DEG = 6371008.8 * Math.PI / 180;
 const north = (p, m) => ({ lat: p.lat + m / M_PER_DEG, lon: p.lon });
 const east = (p, m) => ({ lat: p.lat, lon: p.lon + m / (M_PER_DEG * Math.cos(p.lat * Math.PI / 180)) });
@@ -696,40 +756,469 @@ function haversine(a, b) {
   return 2 * 6371008.8 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-function buildUnderpassTrip(withBadFix) {
-  // every new trip starts a little further east, so the map service has to route it fresh
-  const shift = (Date.now() % 997) * 7;
+// <scenarios>
+// ---------- the scenario lab ----------
+// Every scenario builds one trip with ONE kind of trouble in it (plus a clean baseline and an
+// "everything at once" trip), so each problem can be shown on its own. The checks at the bottom
+// of each scenario read the real API answer and say whether TripLedger did what it should.
+function frame() {
+  // every trip starts somewhere a little different, so the map service has to route it fresh
+  const shift = (Date.now() % 997) * 7 + Math.floor(Math.random() * 400);
   const office = east({ lat: 12.9698, lon: 77.7500 }, shift);
-  const t0 = new Date(Math.floor(Date.now() / 60000) * 60000 - 60 * 60000); // started an hour ago
-  const at = (s) => new Date(t0.getTime() + s * 1000).toISOString();
-  const pings = [];
-  let p = office;
-  for (let i = 0; i < 181; i++) { pings.push({ ts: at(i * 5), lat: p.lat, lon: p.lon, accuracyM: 6, seq: i }); p = north(p, 50); }
-  if (withBadFix) {
-    // two pings 9 km away, 1 s apart, slipped in between two normal ones (same idea as the Postman "bad fix").
-    // Nothing on the ground moves 9 km in 2 seconds, so the teleport filter should throw both out.
-    const base = pings[60];
-    const far = east(base, 9000);
-    pings.splice(61, 0,
-      { ts: at(302), lat: far.lat, lon: far.lon, accuracyM: 5, seq: 1000 },
-      { ts: at(303), lat: north(far, 20).lat, lon: far.lon, accuracyM: 5, seq: 1001 });
+  const t0 = new Date(Math.floor(Date.now() / 60000) * 60000 - 90 * 60000); // started 90 min ago
+  return { office, at: (s) => new Date(t0.getTime() + s * 1000).toISOString(), seq: 0 };
+}
+
+// drive straight north: n pings, one every 5 s, 50 m apart. Gives back where and when it ended.
+function drive(f, pings, from, startSec, n) {
+  let p = from;
+  for (let i = 0; i < n; i++) {
+    pings.push({ ts: f.at(startSec + i * 5), lat: p.lat, lon: p.lon, accuracyM: 6, seq: f.seq++ });
+    if (i < n - 1) p = north(p, 50);
   }
-  const g0 = pings[pings.length - 1];
-  const drop = east(north(g0, 3987.6), 2085.4);       // where employee e-104 was dropped, inside the GPS gap
-  let q = east(g0, 2400);                              // GPS comes back 2.4 km east of where it went quiet
-  for (let i = 0; i < 141; i++) { pings.push({ ts: at(2220 + i * 5), lat: q.lat, lon: q.lon, accuracyM: 6, seq: 181 + i }); q = north(q, 50); }
+  return { point: p, sec: startSec + (n - 1) * 5 };
+}
+
+function tripRequest(f, pings, more) {
   return {
-    request: {
-      tripType: 'LOGOUT', windowStart: at(0), windowEnd: at(7200),
-      plannedOffice: { lat: office.lat, lon: office.lon }, pings,
-      milestones: [
-        { type: 'TRIP_START', lat: office.lat, lon: office.lon, ts: at(0) },
-        { employeeRef: 'e-104', type: 'DROP', lat: drop.lat, lon: drop.lon, ts: at(1560) }
-      ],
-      plannedStops: [{ employeeRef: 'e-104', riderType: 'PLANNED', lat: drop.lat, lon: drop.lon, plannedTs: at(1560) }]
-    },
-    last: q
+    tripType: 'LOGOUT', windowStart: f.at(0), windowEnd: f.at(7200),
+    plannedOffice: { lat: f.office.lat, lon: f.office.lon }, pings,
+    milestones: [{ type: 'TRIP_START', lat: f.office.lat, lon: f.office.lon, ts: f.at(0) }, ...((more && more.milestones) || [])],
+    plannedStops: (more && more.plannedStops) || []
   };
+}
+
+const byTime = (a, b) => a.ts.localeCompare(b.ts);
+const ping = (p, ts, accuracyM, seq) => ({ ts, lat: p.lat, lon: p.lon, accuracyM, seq });
+const plusSec = (iso, s) => new Date(new Date(iso).getTime() + s * 1000).toISOString();
+
+// the underpass trip: 9 km of pings, 22 min with none while EMP-2417 is dropped, then 7 km more
+function gapTrip(f, startSec, from, dropHasLocation) {
+  const pings = [];
+  const a = drive(f, pings, from, startSec, 181);
+  const g0 = a.point;
+  const drop = east(north(g0, 3987.6), 2085.4);
+  const dropSec = a.sec + 660, backSec = a.sec + 1320;
+  const b = drive(f, pings, east(g0, 2400), backSec, 141);
+  const dropTs = f.at(dropSec);
+  return {
+    pings, end: b,
+    milestones: [dropHasLocation
+      ? { employeeRef: 'EMP-2417', type: 'DROP', lat: drop.lat, lon: drop.lon, ts: dropTs }
+      : { employeeRef: 'EMP-2417', type: 'DROP', ts: dropTs }],
+    plannedStops: [{ employeeRef: 'EMP-2417', riderType: 'PLANNED', lat: drop.lat, lon: drop.lon, plannedTs: dropTs }]
+  };
+}
+const lateMemo = (f, req, end) => ({ req, next: north(end.point, 50), sec: end.sec + 5, seq: f.seq + 100 });
+
+// noise makers, each one a different kind of bad data
+function teleports(good, i) {
+  const base = good[i], far = east(base, 9000);
+  return [ping(far, plusSec(base.ts, 2), 5, 9000), ping(north(far, 20), plusSec(base.ts, 3), 5, 9001)];
+}
+function weakSignal(good, from, count) {
+  return Array.from({ length: count }, (_, k) => { const base = good[from + k * 8]; return ping(east(base, 400), plusSec(base.ts, 2), 150, 9100 + k); });
+}
+function sameInstant(good, from, count, step) {
+  return Array.from({ length: count }, (_, k) => { const base = good[from + k * step]; return ping(east(base, 30), base.ts, 25, 9200 + k); });
+}
+function wrongClock(f, count) {
+  const start = east(f.office, 5000);
+  return Array.from({ length: count }, (_, k) => ping(north(start, k * 50), f.at(-1800 + k * 5), 6, 9300 + k));
+}
+function noFix(good, from, count, step) {
+  return Array.from({ length: count }, (_, k) => ({ ts: plusSec(good[from + k * step].ts, 3), lat: 0, lon: 0, accuracyM: 5, seq: 9400 + k }));
+}
+// a phone that syncs in parts, out of order, and sends one part twice
+function messyUploads(f, all, more) {
+  const sorted = all.slice().sort(byTime);
+  const third = Math.ceil(sorted.length / 3);
+  const shuffle = (xs) => xs.map(x => [Math.random(), x]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  const [A, B, C] = [sorted.slice(0, third), sorted.slice(third, 2 * third), sorted.slice(2 * third)].map(shuffle);
+  return { uploads: [C, A, B, B].map(part => tripRequest(f, part, more)), resent: B.length };
+}
+
+const SCENARIOS = [
+  {
+    key: 'clean', tag: 'base', group: 'Baseline', title: 'Clean trip', short: 'Clean',
+    problem: 'Nothing goes wrong: a ping every 5 s for the whole 15 km.',
+    fix: 'Every piece is a short hop between pings. No map calls are needed.',
+    build() {
+      const f = frame(), good = [];
+      drive(f, good, f.office, 0, 301);
+      return { f, uploads: [tripRequest(f, good)], good, sent: good, lines: ['301 pings, one every 5 s, 15 km'] };
+    },
+    checks: (r) => [
+      r.check(r.onlyRule('SHORT_GAP_AERIAL'), 'Every segment is a short hop between pings', `${r.count('SHORT_GAP_AERIAL')} short hops`),
+      r.check(r.calls === 0, 'No paid map calls', `${r.calls} calls`),
+      r.check(r.removedTotal === 0, 'Nothing removed in cleaning', `${r.removedTotal} removed`),
+      r.kmMatches()
+    ]
+  },
+  {
+    key: 'gap', tag: 'gps', group: 'GPS signal', title: 'GPS gap in a tunnel', short: 'GPS gap',
+    problem: 'No pings for 22 min (tunnel, basement) while employee EMP-2417 is dropped.',
+    fix: 'The drop becomes an anchor point and the 2 legs are measured as road distance.',
+    routes: true, late: true,
+    build() {
+      const f = frame(), g = gapTrip(f, 0, f.office, true);
+      const req = tripRequest(f, g.pings, g);
+      return { f, uploads: [req], good: g.pings, sent: g.pings, late: lateMemo(f, req, g.end),
+        lines: ['181 pings for 9 km', 'then nothing for 22 min, while EMP-2417 is dropped', '141 pings for 7 km after GPS comes back'] };
+    },
+    checks: (r) => [
+      r.check(r.gap && r.gap.minutes >= 20, 'GPS gap found', r.gap ? `${r.gap.minutes} min` : 'none'),
+      r.check(r.anchor('EMPLOYEE_DROP', 'ACTUAL'), 'Drop of EMP-2417 used as an anchor (its actual location)', r.anchorSource('EMPLOYEE_DROP')),
+      r.check(r.count('ROUTED') >= 1 && !r.count('DEGRADED_AERIAL'), 'Gap measured as road distance', `${r.count('ROUTED')} routed legs`),
+      r.check(r.calls <= 2, 'Only the real gap cost paid calls', `${r.calls} calls`),
+      r.check(r.km > r.goodKm + 1, 'Billed more than just adding up the pings', `${r.kmText} vs ${r.goodKm.toFixed(2)} km`)
+    ]
+  },
+  {
+    key: 'nolocation', tag: 'gps', group: 'GPS signal', title: 'Drop sent without a location', short: 'No drop location',
+    problem: 'Same tunnel, but the driver app sends the drop of EMP-2417 with no coordinates.',
+    fix: 'Falls back to the planned stop of EMP-2417 (planned rider), then routes through it.',
+    routes: true, late: true,
+    build() {
+      const f = frame(), g = gapTrip(f, 0, f.office, false);
+      const req = tripRequest(f, g.pings, g);
+      return { f, uploads: [req], good: g.pings, sent: g.pings, late: lateMemo(f, req, g.end),
+        lines: ['A 22-min GPS gap like the tunnel trip', 'The drop milestone has a time but no lat / lon', 'The plan says where EMP-2417 was going'] };
+    },
+    checks: (r) => [
+      r.check(r.anchor('EMPLOYEE_DROP', 'PLANNED'), 'Drop anchored at the planned stop (fallback)', r.anchorSource('EMPLOYEE_DROP')),
+      r.check(r.gap && r.gap.minutes >= 20, 'GPS gap found', r.gap ? `${r.gap.minutes} min` : 'none'),
+      r.check(r.count('ROUTED') >= 1, 'Gap measured as road distance through the planned stop', `${r.count('ROUTED')} routed legs`)
+    ]
+  },
+  {
+    key: 'farjump', tag: 'gps', group: 'GPS signal', title: 'GPS comes back 78 km away', short: 'Too-long route',
+    problem: 'After 45 min with no GPS the next ping is 78 km away: the road would be over 100 km.',
+    fix: 'The road answer is rejected. Only the straight line is paid, and the piece is flagged for a person.',
+    routes: true,
+    build() {
+      const f = frame(), good = [];
+      const a = drive(f, good, f.office, 0, 181);
+      drive(f, good, east(a.point, 78000), a.sec + 2700, 41);
+      return { f, uploads: [tripRequest(f, good)], good, sent: good,
+        lines: ['181 pings for 9 km', 'then nothing for 45 min', 'the next ping is 78 km east (road ≈ 101 km)', '41 pings for 2 km more'] };
+    },
+    checks: (r) => {
+      const seg = r.br.segments.find(s => s.rule === 'REJECTED_DISTANCE');
+      const straight = seg ? haversine({ lat: seg.fromLat, lon: seg.fromLon }, { lat: seg.toLat, lon: seg.toLon }) / 1000 : 0;
+      return [
+        r.check(!!seg, 'Road answer over 100 km rejected', seg ? 'REJECTED_DISTANCE' : 'not rejected'),
+        r.check(seg && Math.abs(Number(seg.km) - straight) < 0.01, 'Only the straight line was paid for it', seg ? `${Number(seg.km).toFixed(2)} km` : '-'),
+        r.check(seg && seg.needsReview, 'Flagged for a person to check', seg && seg.needsReview ? 'needs review' : '-'),
+        r.check(r.calls === 1, 'One paid call to find that out', `${r.calls} calls`)
+      ];
+    }
+  },
+  {
+    key: 'parked', tag: 'gps', group: 'GPS signal', title: 'Cab parked, phone asleep', short: 'Parked',
+    problem: 'The cab waits 8 min and the phone sends nothing, then it drives on.',
+    fix: 'Labelled PARKED: the cab did not move, so no map call and no extra km.',
+    build() {
+      const f = frame(), good = [];
+      const a = drive(f, good, f.office, 0, 121);
+      drive(f, good, north(a.point, 8), a.sec + 480, 120);
+      return { f, uploads: [tripRequest(f, good)], good, sent: good, lines: ['121 pings for 6 km', 'nothing for 8 min, the cab stays put', '120 pings for 6 km more'] };
+    },
+    checks: (r) => [
+      r.check(r.count('PARKED') >= 1, 'Wait labelled PARKED', `${r.count('PARKED')} parked`),
+      r.check(!r.gap, 'Not treated as a GPS gap', r.gap ? 'treated as a gap' : 'no gap'),
+      r.check(r.calls === 0, 'No paid map calls', `${r.calls} calls`),
+      r.kmMatches()
+    ]
+  },
+  {
+    key: 'teleport', tag: 'data', group: 'Data quality', title: 'Bad GPS fix (teleport)', short: 'Teleport',
+    problem: 'Two pings jump 9 km away for a second, then the track carries on as normal.',
+    fix: 'Dropped as teleports (they would need far more than 120 km/h). The km do not change.',
+    build() {
+      const f = frame(), good = [];
+      drive(f, good, f.office, 0, 301);
+      const sent = [...good, ...teleports(good, 100)].sort(byTime);
+      return { f, uploads: [tripRequest(f, sent)], good, sent, lines: ['301 good pings for 15 km', '2 pings 9 km away, 1 s apart, in the middle'] };
+    },
+    checks: (r) => [
+      r.check(r.removed('teleport') === 2, 'Both bad pings removed as teleports', `${r.removed('teleport')} removed`),
+      r.kmMatches(),
+      r.check(r.sentKm > r.km + 10, 'Adding up the raw pings would have over-paid', `${r.sentKm.toFixed(2)} km`)
+    ]
+  },
+  {
+    key: 'accuracy', tag: 'data', group: 'Data quality', title: 'Weak signal', short: 'Weak signal',
+    problem: '12 pings report an accuracy of 150 m and wander 400 m off the road.',
+    fix: 'Dropped as low-accuracy fixes (worse than 50 m) before anything is measured.',
+    build() {
+      const f = frame(), good = [];
+      drive(f, good, f.office, 0, 301);
+      const sent = [...good, ...weakSignal(good, 40, 12)].sort(byTime);
+      return { f, uploads: [tripRequest(f, sent)], good, sent, lines: ['301 good pings for 15 km', '12 pings with 150 m accuracy, 400 m to the side'] };
+    },
+    checks: (r) => [
+      r.check(r.removed('low-accuracy') === 12, 'All 12 removed as low-accuracy fixes', `${r.removed('low-accuracy')} removed`),
+      r.kmMatches(),
+      r.check(r.sentKm > r.km + 1, 'Adding up the raw pings would have over-paid', `${r.sentKm.toFixed(2)} km`)
+    ]
+  },
+  {
+    key: 'messy', tag: 'data', group: 'Data quality', title: 'Messy uploads', short: 'Messy uploads',
+    problem: 'Sent in 3 parts out of order, one part sent twice, and 10 pings come twice at the same instant.',
+    fix: 'Re-sent pings are ignored on arrival, same-instant pings keep the most accurate one, and everything is sorted by time.',
+    build() {
+      const f = frame(), good = [];
+      drive(f, good, f.office, 0, 301);
+      const all = [...good, ...sameInstant(good, 20, 10, 25)];
+      const m = messyUploads(f, all);
+      return { f, uploads: m.uploads, good, sent: all.slice().sort(byTime), expectResent: m.resent,
+        lines: ['301 pings for 15 km + 10 same-instant copies', 'sent as 3 shuffled parts: last part first', 'the middle part sent twice'] };
+    },
+    checks: (r) => [
+      r.check(r.memo.duplicatesOnArrival === r.memo.expectResent, 'Re-sent part ignored on arrival', `${r.memo.duplicatesOnArrival} pings`),
+      r.check(r.removed('duplicate') === 10, 'Same-instant copies removed', `${r.removed('duplicate')} removed`),
+      r.kmMatches(),
+      r.check(r.calls === 0, 'Order did not matter: no gaps, no calls', `${r.calls} calls`)
+    ]
+  },
+  {
+    key: 'junk', tag: 'data', group: 'Data quality', title: 'Junk pings', short: 'Junk pings',
+    problem: '8 pings stamped 30 min before the trip (wrong phone clock) and 5 pings at 0, 0 (no fix).',
+    fix: 'Dropped as outside the trip window and as impossible coordinates.',
+    build() {
+      const f = frame(), good = [];
+      drive(f, good, f.office, 0, 301);
+      const sent = [...good, ...wrongClock(f, 8), ...noFix(good, 50, 5, 40)].sort(byTime);
+      return { f, uploads: [tripRequest(f, sent)], good, sent, lines: ['301 good pings for 15 km', '8 pings 30 min before the trip, 5 km away', '5 pings at latitude 0, longitude 0'] };
+    },
+    checks: (r) => [
+      r.check(r.removed('outside-trip-window') === 8, 'Wrong-clock pings removed', `${r.removed('outside-trip-window')} removed`),
+      r.check(r.removed('invalid-coordinate') === 5, '0, 0 pings removed', `${r.removed('invalid-coordinate')} removed`),
+      r.kmMatches()
+    ]
+  },
+  {
+    key: 'outage', tag: 'map', group: 'Map service', title: 'Map service down', short: 'Outage', admin: true, late: true,
+    problem: 'The map service is switched off, then a trip with a 22-min tunnel gap arrives (only gaps need the map service, so the trip has one).',
+    fix: 'Billing keeps going: the gap is guessed as straight line × 1.4 and the trip is DEGRADED, then fixed once the service is back.',
+    before: async () => { await api('PUT', '/v1/admin/routing/mock', { down: true }); },
+    build() {
+      const f = frame(), g = gapTrip(f, 0, f.office, true);
+      const req = tripRequest(f, g.pings, g);
+      return { f, uploads: [req], good: g.pings, sent: g.pings, late: lateMemo(f, req, g.end),
+        lines: ['Map service switched OFF first', 'then the tunnel trip: 22 min with no GPS'] };
+    },
+    checks: (r) => [
+      r.check(r.memo.degradedSeen, 'Came out DEGRADED while the map service was down', r.memo.degradedKm ? `${r.memo.degradedKm} km provisional` : 'not yet'),
+      r.check(r.memo.degradedSeen, 'Billing did not stop: a provisional km was there at once', r.memo.degradedKm ? 'yes' : '-'),
+      r.check(r.status === 'COMPUTED', 'Recovered to COMPUTED once the service was back', r.status)
+    ]
+  },
+  {
+    key: 'billing', tag: 'bill', group: 'Billing', title: 'Late pings after billing', short: 'Late pings', admin: true,
+    problem: 'A clean trip is put on an invoice, then 30 more pings arrive from a phone that was offline.',
+    fix: 'The invoice is never edited. The extra km become a signed adjustment.',
+    build() {
+      const f = frame(), good = [];
+      drive(f, good, f.office, 0, 301);
+      return { f, uploads: [tripRequest(f, good)], good, sent: good,
+        lines: ['301 pings for 15 km, nothing else wrong', 'billed on a new invoice', '30 late pings (1.5 km more) sent after that'] };
+    },
+    after: async (id) => {
+      const invoice = newInvoiceId();
+      await api('POST', `/v1/trips/${id}/bill`, { invoiceId: invoice });
+      toast(`Billed on ${invoice}. Sending late pings...`);
+      await postLatePings(id);
+      await waitForResult(id);
+    },
+    checks: (r) => {
+      const deltaMm = r.adj.adjustments.reduce((t, a) => t + a.deltaMm, 0);
+      return [
+        r.check(!!r.adj.invoiceId, 'Trip is on an invoice', r.adj.invoiceId || 'not billed'),
+        r.check(!r.gap && r.count('ROUTED') === 0, 'No GPS gap: only the late data changed the km', r.gap ? 'has a gap' : 'no gap'),
+        r.check(r.adj.adjustments.length >= 1 && deltaMm > 0, 'Late pings became a signed adjustment', r.adj.adjustments.map(a => a.deltaKm + ' km').join(', ') || 'none'),
+        r.check(r.adj.chargedKm === r.dist.billableKm, 'Billed + adjustments = charged = current km', r.adj.chargedKm ? `${r.adj.billedKm} ${deltaMm >= 0 ? '+' : '-'} ${Math.abs(deltaMm / 1e6).toFixed(2)} = ${r.adj.chargedKm}` : '-')
+      ];
+    }
+  },
+  {
+    key: 'billedOutage', tag: 'bill', group: 'Billing', title: 'Billed during an outage', short: 'Billed in outage', admin: true,
+    problem: 'The map service is down while a trip with a tunnel gap arrives, so the gap is a \u00d7 1.4 guess (DEGRADED), and the trip is billed like that. Later the service comes back.',
+    fix: 'Recovery replaces the guess with the real road distance. The invoice stays as it is; the difference becomes a signed adjustment, here a negative one.',
+    before: async () => { await api('PUT', '/v1/admin/routing/mock', { down: true }); },
+    build() {
+      const f = frame(), g = gapTrip(f, 0, f.office, true);
+      const req = tripRequest(f, g.pings, g);
+      return { f, uploads: [req], good: g.pings, sent: g.pings, late: lateMemo(f, req, g.end),
+        lines: ['Map service switched OFF first', 'the tunnel trip comes out DEGRADED and is billed', 'then the map service comes back and the trip is recomputed'] };
+    },
+    after: async (id) => {
+      const invoice = newInvoiceId();
+      await api('POST', `/v1/trips/${id}/bill`, { invoiceId: invoice });
+      toast(`Billed the provisional km on ${invoice}. Bringing the map service back...`);
+      await sleep(1500);
+      await api('PUT', '/v1/admin/routing/mock', { down: false });
+      await api('POST', `/v1/trips/${encodeURIComponent(id)}/recompute`);
+      await sleep(2500);
+      await waitForResult(id);
+      refreshStatus();
+    },
+    checks: (r) => {
+      const deltaMm = r.adj.adjustments.reduce((t, a) => t + a.deltaMm, 0);
+      return [
+        r.check(r.memo.degradedSeen && !!r.adj.invoiceId, 'Billed while DEGRADED (provisional km)', r.adj.billedKm ? `${r.adj.billedKm} km on ${r.adj.invoiceId}` : 'not billed'),
+        r.check(r.status === 'COMPUTED', 'Recovered to COMPUTED with the real road distance', `${r.status} \u00b7 ${r.kmText}`),
+        r.check(r.adj.adjustments.length >= 1 && deltaMm < 0, 'The difference became a signed (negative) adjustment', r.adj.adjustments.map(a => a.deltaKm + ' km').join(', ') || 'none'),
+        r.check(r.adj.chargedKm === r.dist.billableKm, 'Billed + adjustments = charged = current km', r.adj.chargedKm ? `${r.adj.billedKm} - ${Math.abs(deltaMm / 1e6).toFixed(2)} = ${r.adj.chargedKm}` : '-')
+      ];
+    }
+  },
+  {
+    key: 'everything', tag: 'all', group: 'All of it', title: 'Everything at once', short: 'Everything',
+    problem: 'One trip with a tunnel gap, a parked stop, a teleport, weak signal, junk pings, duplicates and out-of-order uploads.',
+    fix: 'Each problem is handled by its own step, and every one is counted.',
+    routes: true,
+    build() {
+      const f = frame(), first = [];
+      const a = drive(f, first, f.office, 0, 91);
+      const b = drive(f, first, north(a.point, 8), a.sec + 480, 91);
+      const g = gapTrip(f, b.sec + 5, north(b.point, 50), true);
+      const good = [...first, ...g.pings];
+      const noise = [...teleports(good, 50), ...weakSignal(good, 60, 12), ...noFix(good, 150, 5, 20), ...sameInstant(good, 200, 10, 10), ...wrongClock(f, 8)];
+      const all = [...good, ...noise];
+      const m = messyUploads(f, all, g);
+      return { f, uploads: m.uploads, good, sent: all.slice().sort(byTime), expectResent: m.resent,
+        lines: ['a parked stop of 8 min and a 22-min tunnel gap with a drop', '2 teleports, 12 weak-signal pings, 5 at 0, 0, 8 with a wrong clock', '10 same-instant copies; 3 shuffled parts, one sent twice'] };
+    },
+    checks: (r) => [
+      r.check(r.gap && r.gap.minutes >= 20 && r.count('ROUTED') >= 1, 'Tunnel gap routed through the drop', r.gap ? `${r.gap.minutes} min, ${r.count('ROUTED')} legs` : 'none'),
+      r.check(r.count('PARKED') >= 1, 'Wait labelled PARKED', `${r.count('PARKED')} parked`),
+      r.check(r.removed('teleport') === 2, 'Teleports removed', `${r.removed('teleport')}`),
+      r.check(r.removed('low-accuracy') === 12, 'Weak-signal pings removed', `${r.removed('low-accuracy')}`),
+      r.check(r.removed('invalid-coordinate') === 5, '0, 0 pings removed', `${r.removed('invalid-coordinate')}`),
+      r.check(r.removed('outside-trip-window') === 8, 'Wrong-clock pings removed', `${r.removed('outside-trip-window')}`),
+      r.check(r.removed('duplicate') === 10, 'Same-instant copies removed', `${r.removed('duplicate')}`),
+      r.check(r.memo.duplicatesOnArrival === r.memo.expectResent, 'Re-sent part ignored on arrival', `${r.memo.duplicatesOnArrival} pings`)
+    ]
+  }
+];
+// </scenarios>
+
+const scenarioByKey = (k) => SCENARIOS.find(s => s.key === k);
+const newInvoiceId = () => 'INV-' + new Date().toISOString().slice(0, 10).replaceAll('-', '') + '-' + Math.floor(Math.random() * 900 + 100);
+
+// crypto.randomUUID only exists on https / localhost; opened over a LAN IP we fall back to a random string
+const newKey = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+  : 'k-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+
+// What we remember about a scenario trip, per company, so the panel survives a reload
+function saveScenario(id, memo) {
+  state.scenarios[id] = memo;
+  const keys = Object.keys(state.scenarios);
+  if (keys.length > 60) delete state.scenarios[keys[0]];
+  if (state.choice) store.set('scenarios.' + state.choice.tenant, state.scenarios);
+}
+
+function renderLab() {
+  const list = SCENARIOS.filter(s => !s.admin || isAdmin());
+  $('lab').innerHTML = list.map(s => `<div class="tile">
+      <div class="tile-top"><span class="tag ${s.tag}">${s.group}</span>${s.admin ? '<span class="tag base">admin</span>' : ''}</div>
+      <h3>${s.title}</h3>
+      <p><b>Problem:</b> ${s.problem}</p>
+      <p><b>TripLedger:</b> ${s.fix}</p>
+      <button class="btn small ${s.key === 'gap' ? 'primary' : ''}" data-run="${s.key}">Run this trip</button></div>`).join('');
+  $('lab').querySelectorAll('[data-run]').forEach(b => b.onclick = () => runScenario(b.dataset.run, b));
+}
+
+async function runScenario(key, button) {
+  const sc = scenarioByKey(key);
+  if (sc.routes && state.status && state.status.routing.providerDown) {
+    toast('The map service is offline, so this trip would come out DEGRADED. Bring it back on the System screen first.', true);
+    return;
+  }
+  const built = sc.build();
+  const tripId = 'DEMO-' + Date.now().toString(36).toUpperCase();
+  await guarded(button, async () => {
+    if (sc.before) await sc.before();
+    let duplicates = 0, received = 0;
+    for (const req of built.uploads) {
+      const res = await api('POST', `/v1/trips/${tripId}/evidence`, req, { 'Idempotency-Key': newKey() });
+      duplicates += res.pingsDuplicate; received += res.pingsReceived;
+    }
+    state.pingsByTrip[tripId] = built.sent.slice();
+    const lastGood = built.good.slice().sort(byTime).at(-1);
+    state.lastLate[tripId] = built.late || { req: built.uploads[0], next: north(lastGood, 50),
+      sec: (Date.parse(lastGood.ts) - Date.parse(built.uploads[0].windowStart)) / 1000 + 5, seq: 20000 };
+    saveScenario(tripId, {
+      key, lines: built.lines, uploads: built.uploads.length, received, duplicatesOnArrival: duplicates,
+      expectResent: built.expectResent || 0,
+      goodKm: naiveKm(built.good.slice().sort(byTime)), sentKm: naiveKm(built.sent)
+    });
+    rememberOpened(tripId);
+    toast(`${sc.title}: sent ${received} pings in ${built.uploads.length} upload${built.uploads.length === 1 ? '' : 's'}. Computing...`);
+    location.hash = '#/trips/' + tripId;
+    await waitForResult(tripId);
+    if (sc.after) await sc.after(tripId);
+  });
+}
+
+// The panel on top of a scenario trip: what went wrong, what TripLedger did, and checks read from the API
+function renderScenario(dist, br, adj) {
+  const box = $('d-scenario');
+  const memo = state.scenarios[dist.tripId];
+  const sc = memo && scenarioByKey(memo.key);
+  if (!sc) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  if ((memo.key === 'outage' || memo.key === 'billedOutage') && dist.status === 'DEGRADED' && !memo.degradedSeen) {
+    memo.degradedSeen = true; memo.degradedKm = dist.billableKm; saveScenario(dist.tripId, memo);
+  }
+  const removed = (name) => (br.cleaning && br.cleaning.removed && br.cleaning.removed[name]) || 0;
+  const count = (rule) => (br.ruleCounts && br.ruleCounts[rule]) || 0;
+  const km = Number(dist.billableKm);
+  const gaps = findGpsGaps(br);
+  const r = {
+    dist, br, adj, memo, status: dist.status, km, kmText: `${dist.billableKm} km`,
+    calls: dist.routing ? dist.routing.providerCalls : 0,
+    goodKm: memo.goodKm, sentKm: memo.sentKm, gap: gaps[0],
+    removed, count,
+    removedTotal: br.cleaning ? br.cleaning.received - br.cleaning.kept : 0,
+    onlyRule: (rule) => Object.keys(br.ruleCounts || {}).every(k => k === rule),
+    anchor: (kind, source) => (br.anchors || []).some(a => a.kind === kind && a.source === source),
+    anchorSource: (kind) => { const a = (br.anchors || []).find(x => x.kind === kind); return a ? (SOURCE_LABELS[a.source] || a.source) : 'none'; },
+    check: (ok, label, value) => ({ ok: !!ok, label, value }),
+    kmMatches: () => ({ ok: Math.abs(km - memo.goodKm) <= 0.05, label: 'Billed km match the clean track', value: `${dist.billableKm} vs ${memo.goodKm.toFixed(2)} km` })
+  };
+  const waiting = dist.status === 'RECEIVED' || !dist.billableKm;
+  const checks = waiting ? [] : sc.checks(r);
+  const passed = checks.filter(c => c.ok).length;
+  const action = memo.key === 'outage' && dist.status === 'DEGRADED' && isAdmin()
+    ? `<div class="scen-action"><span>The map service is still off and this trip is a guess.</span><button class="btn primary small" id="scen-recover">Bring the map service back and recompute</button></div>` : '';
+  box.innerHTML = `
+    <div class="scen-head">
+      <span class="tag ${sc.tag}">${sc.group}</span>
+      <h2>Scenario: ${sc.title}</h2>
+      <span class="pill ${waiting ? 'info' : passed === checks.length ? 'ok' : 'warn'}">${waiting ? 'computing...' : `${passed} / ${checks.length} checks passed`}</span>
+    </div>
+    <div class="scen-body">
+      <div><div class="sub-title">What went wrong</div><p>${sc.problem}</p>
+        <ul class="sent">${memo.lines.map(l => `<li>${esc(l)}</li>`).join('')}<li>${memo.received} pings sent in ${memo.uploads} upload${memo.uploads === 1 ? '' : 's'}</li></ul></div>
+      <div><div class="sub-title">What TripLedger did</div><p>${sc.fix}</p>
+        <ul class="checks">${waiting ? '<li class="wait"><span class="mark">…</span>Waiting for the result</li>'
+          : checks.map(c => `<li class="${c.ok ? 'ok' : 'bad'}"><span class="mark">${c.ok ? '✓' : '✗'}</span><span>${c.label}</span><span class="val">${esc(c.value)}</span></li>`).join('')}</ul></div>
+    </div>${action}`;
+  if ($('scen-recover')) $('scen-recover').onclick = (e) => recoverOutage(dist.tripId, e.currentTarget);
+}
+
+async function recoverOutage(id, button) {
+  await guarded(button, async () => {
+    await api('PUT', '/v1/admin/routing/mock', { down: false });
+    toast('Map service back ON. Recomputing the trip...');
+    await api('POST', `/v1/trips/${encodeURIComponent(id)}/recompute`);
+    await sleep(2500);
+    await waitForResult(id);
+    refreshStatus();
+  });
 }
 
 function naiveKm(pings) {
@@ -738,26 +1227,7 @@ function naiveKm(pings) {
   return m / 1000;
 }
 
-// crypto.randomUUID only exists on https / localhost; opened over a LAN IP we fall back to a random string
-const newKey = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
-  : 'k-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
-
 // ---------- actions ----------
-async function uploadTrip(withBadFix, button) {
-  const trip = buildUnderpassTrip(withBadFix);
-  const tripId = 'DEMO-' + Date.now().toString(36).toUpperCase();
-  await guarded(button, async () => {
-    const res = await api('POST', `/v1/trips/${tripId}/evidence`, trip.request, { 'Idempotency-Key': newKey() });
-    const sorted = trip.request.pings.slice().sort((a, b) => a.ts.localeCompare(b.ts));
-    state.pingsByTrip[tripId] = sorted;
-    state.lastLate[tripId] = { req: trip.request, next: trip.last, sec: 2925, seq: 322 };
-    rememberOpened(tripId);
-    toast(`Uploaded ${res.pingsReceived} pings. Computing in the background...`);
-    location.hash = '#/trips/' + tripId;
-    await waitForResult(tripId);
-  });
-}
-
 async function billTrip() {
   const id = state.tripId;
   const invoice = 'INV-' + new Date().toISOString().slice(0, 10).replaceAll('-', '') + '-' + Math.floor(Math.random() * 900 + 100);
@@ -768,23 +1238,29 @@ async function billTrip() {
   });
 }
 
-async function sendLatePings(button) {
-  const id = state.tripId;
+// 30 more pings after the last one we sent, as if a phone that was offline finally synced
+async function postLatePings(id) {
   const memo = state.lastLate[id];
-  if (!memo) { toast('Late pings only work on a trip uploaded from this page', true); return; }
   const late = [];
   let p = memo.next;
   for (let i = 0; i < 30; i++) {
     late.push({ ts: new Date(new Date(memo.req.windowStart).getTime() + (memo.sec + i * 5) * 1000).toISOString(), lat: p.lat, lon: p.lon, accuracyM: 6, seq: memo.seq + i });
     p = north(p, 50);
   }
-  const req = { ...memo.req, pings: late };
+  const res = await api('POST', `/v1/trips/${id}/evidence`, { ...memo.req, pings: late }, { 'Idempotency-Key': newKey() });
+  // only move the memo on once the server took them, so a failed send can simply be retried
+  memo.next = p; memo.sec += 150; memo.seq += 30;
+  if (state.pingsByTrip[id]) state.pingsByTrip[id].push(...late);
+  const sm = state.scenarios[id];
+  if (sm && state.pingsByTrip[id]) { sm.sentKm = naiveKm(state.pingsByTrip[id]); saveScenario(id, sm); }
+  toast(`Late pings: ${res.pingsNew} new. Recomputing...`);
+}
+
+async function sendLatePings(button) {
+  const id = state.tripId;
+  if (!state.lastLate[id]) { toast('Late pings only work on a trip uploaded from this page', true); return; }
   await guarded(button, async () => {
-    const res = await api('POST', `/v1/trips/${id}/evidence`, req, { 'Idempotency-Key': newKey() });
-    // only move the memo on once the server took them, so a failed send can simply be retried
-    memo.next = p; memo.sec += 150; memo.seq += 30;
-    state.pingsByTrip[id].push(...late);
-    toast(`Late pings: ${res.pingsNew} new. Recomputing...`);
+    await postLatePings(id);
     await waitForResult(id);
   });
 }
@@ -866,7 +1342,7 @@ function renderTripTable() {
   const rows = all.filter(t => (state.filter === 'ALL' || t.status === state.filter) && (!q || t.tripId.toLowerCase().includes(q)));
   const shown = rows.slice(0, 50);
   if (!shown.length) {
-    const msg = !all.length ? (isAdmin() ? 'No trips yet. Upload a sample trip to get started.' : 'Nothing opened yet. Upload a sample trip, or open one by ID.') : 'No trip matches.';
+    const msg = !all.length ? (isAdmin() ? 'No trips yet. Run a scenario above to get started.' : 'Nothing opened yet. Run a scenario above, or open one by ID.') : 'No trip matches.';
     $('trip-rows').innerHTML = `<tr><td colspan="5" class="empty">${msg}</td></tr>`;
   } else {
     $('trip-rows').innerHTML = shown.map(t => {
@@ -874,7 +1350,7 @@ function renderTripTable() {
       const d = cached && cached.dist;
       const status = t.status || (d && d.status) || '';
       return `<tr class="link" tabindex="0" data-trip="${esc(t.tripId)}">
-        <td><span class="chip">${esc(t.tripId)}</span></td>
+        <td><span class="chip">${esc(t.tripId)}</span>${scenarioTag(t.tripId)}</td>
         <td>${status ? `<span class="pill ${statusClass(status)}">${status}</span>` : '<span class="muted">...</span>'}</td>
         <td class="hide-sm muted">${t.updatedAt ? ago(t.updatedAt) : (d && d.computedAt ? ago(d.computedAt) : '-')}</td>
         <td class="num km" data-km="${esc(t.tripId)}">${d ? (d.billableKm ? d.billableKm + ' km' : '<span class="muted">-</span>') : '<span class="muted">...</span>'}</td>
@@ -960,6 +1436,8 @@ function clearDetail(id) {
   $('d-segtotal').textContent = ''; $('d-rulesum').innerHTML = ''; $('d-segs').innerHTML = '';
   $('d-clean-line').textContent = '-'; $('d-clean').innerHTML = ''; $('d-anchors').innerHTML = ''; $('d-clean-pill').textContent = '-';
   $('d-invoice').innerHTML = '';
+  $('d-gaps').innerHTML = ''; $('d-gaps').hidden = true;
+  $('d-scenario').innerHTML = ''; $('d-scenario').hidden = true;
   if (layer) layer.clearLayers();
 }
 
@@ -976,9 +1454,11 @@ async function loadTrip(id) {
   renderHeader(dist);
   renderStats(dist);
   renderMap(br);
+  renderGaps(br);
   renderSegments(br);
   renderCleaning(br);
   renderInvoice(adj);
+  renderScenario(dist, br, adj);
   updateDetailButtons();
 }
 
@@ -990,9 +1470,10 @@ function renderHeader(d) {
 
 function renderStats(d) {
   $('d-km').innerHTML = d.billableKm ? `${d.billableKm}<small>km</small>` : '-';
-  const pings = state.pingsByTrip[d.tripId];
+  const pings = state.pingsByTrip[d.tripId], memo = state.scenarios[d.tripId];
+  const rawKm = pings ? naiveKm(pings) : memo ? memo.sentKm : null;
   $('d-km-note').textContent = !d.billableKm ? 'Waiting for the first calculation'
-    : pings ? `Just adding up the pings gives ${naiveKm(pings).toFixed(2)} km` : 'Rebuilt from cleaned pings and measured gaps';
+    : rawKm !== null ? `Just adding up the raw pings gives ${rawKm.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 })} km` : 'Rebuilt from cleaned pings and measured gaps';
   if (d.routing) {
     $('d-calls').textContent = d.routing.providerCalls;
     $('d-calls-note').textContent = `${d.routing.requests + d.routing.replayed} lookups · ${d.routing.cacheHits} cached · ${d.routing.replayed} replayed`;
@@ -1004,21 +1485,62 @@ function renderStats(d) {
     : 'In the compute queue. The worker looks every 2 seconds.';
 }
 
+// A "GPS gap" = a run of back-to-back segments that each lasted 70 s or more without a ping
+// (parked stretches aside). A drop inside the gap splits it into legs, so legs that touch are
+// joined back into one gap here - that's the story a person wants: "GPS was off from X to Y".
+const LONG_GAP_MS = 70 * 1000;
+function findGpsGaps(br) {
+  const gaps = [];
+  let cur = null;
+  for (const s of br.segments) {
+    const long = s.rule !== 'SHORT_GAP_AERIAL' && s.rule !== 'PARKED' && (new Date(s.to) - new Date(s.from)) >= LONG_GAP_MS;
+    if (long && cur && cur.last.to === s.from) { cur.legs.push(s); cur.last = s; continue; }
+    if (long) { cur = { legs: [s], last: s }; gaps.push(cur); continue; }
+    cur = null;
+  }
+  return gaps.map((g, i) => {
+    const first = g.legs[0], last = g.last;
+    const from = new Date(first.from).getTime(), to = new Date(last.to).getTime();
+    return {
+      n: i + 1, legs: g.legs, from: first.from, to: last.to,
+      minutes: Math.round((to - from) / 60000),
+      km: g.legs.reduce((t, s) => t + s.distanceMm, 0) / 1e6,
+      straightKm: haversine({ lat: first.fromLat, lon: first.fromLon }, { lat: last.toLat, lon: last.toLon }) / 1000,
+      lost: [first.fromLat, first.fromLon], back: [last.toLat, last.toLon],
+      // anchors the cab passed while GPS was off (the drop in the underpass trip)
+      anchors: (br.anchors || []).filter(a => a.time && new Date(a.time).getTime() > from && new Date(a.time).getTime() < to),
+      degraded: g.legs.some(s => s.rule === 'DEGRADED_AERIAL'),
+      rejected: g.legs.some(s => s.rule.startsWith('REJECTED'))
+    };
+  });
+}
+
+let segLines = {}, gapBounds = {}, focused = null;
 function renderMap(br) {
   if (!map) return;
   layer.clearLayers();
+  segLines = {}; gapBounds = {}; focused = null;
   const bounds = [];
   for (const s of br.segments) {
     const a = [s.fromLat, s.fromLon], b = [s.toLat, s.toLon];
     bounds.push(a, b);
     const gap = s.rule !== 'SHORT_GAP_AERIAL';
-    L.polyline([a, b], { color: RULE_COLORS[s.rule] || '#5F6B66', weight: gap ? 5 : 3, dashArray: gap ? '8 7' : null, opacity: .95 })
+    const line = L.polyline([a, b], { color: RULE_COLORS[s.rule] || '#5F6B66', weight: gap ? 5 : 3, dashArray: gap ? '8 7' : null, opacity: .95 })
       .bindTooltip(`#${s.seq} ${s.rule} · ${s.km} km`).addTo(layer);
+    if (gap) { segLines[s.seq] = line; line.on('click', () => focusSegment(s.seq)); }
   }
   for (const a of (br.anchors || [])) {
     const isOffice = a.kind === 'OFFICE';
     L.circleMarker([a.lat, a.lon], { radius: isOffice ? 8 : 7, color: '#fff', weight: 2, fillColor: isOffice ? '#171717' : '#1F5C14', fillOpacity: 1 })
       .bindTooltip(`${anchorLabel(a)} · ${SOURCE_LABELS[a.source] || a.source}`).addTo(layer);
+  }
+  // where GPS went quiet and where it came back, labelled right on the map
+  for (const g of findGpsGaps(br)) {
+    gapBounds[g.n] = [g.lost, g.back, ...g.anchors.map(a => [a.lat, a.lon])];
+    L.circleMarker(g.lost, { radius: 6, color: '#B7791F', weight: 2, fillColor: '#fff', fillOpacity: 1 })
+      .bindTooltip(`GPS lost · ${time(g.from)}`, { permanent: true, direction: 'left', className: 'gap-tip' }).addTo(layer);
+    L.circleMarker(g.back, { radius: 6, color: '#43B02A', weight: 2, fillColor: '#fff', fillOpacity: 1 })
+      .bindTooltip(`GPS back · ${time(g.to)}`, { permanent: true, direction: 'right', className: 'gap-tip' }).addTo(layer);
   }
   if (bounds.length) map.fitBounds(bounds, { padding: [28, 28] });
   $('d-rules').textContent = br.ruleVersion ? 'rules ' + br.ruleVersion : 'no run yet';
@@ -1039,16 +1561,71 @@ function renderSegments(br) {
   const hopKm = hops.reduce((t, s) => t + s.distanceMm, 0) / 1e6;
   const cards = interesting.slice(0, 15).map(s => {
     const mins = Math.round((new Date(s.to) - new Date(s.from)) / 60000);
-    return `<div class="seg"><div>
-        <div class="top"><span class="rule ${s.rule}">${s.rule}</span>Gap #${s.seq}</div>
-        <div class="when">${time(s.from)} - ${time(s.to)} · ${mins} min without GPS</div>
+    const secs = Math.round((new Date(s.to) - new Date(s.from)) / 1000);
+    const how = s.rule === 'ROUTED' ? 'road distance from the map service'
+      : s.rule === 'DEGRADED_AERIAL' ? 'straight line × 1.4 (map service down)'
+      : s.rule === 'PARKED' ? 'cab was standing still'
+      : 'straight line, flagged';
+    return `<button type="button" class="seg" data-seq="${s.seq}"><div>
+        <div class="top"><span class="rule ${s.rule}">${s.rule}</span>#${s.seq}</div>
+        <div class="when">${time(s.from)} - ${time(s.to)} · ${mins ? mins + ' min' : secs + ' s'} without GPS</div>
+        <div class="when">${how}</div>
         ${s.needsReview ? '<div class="look">Paid as a straight line. Worth a look.</div>' : ''}
-      </div><div class="km">${Number(s.km).toFixed(2)} km</div></div>`;
+      </div><div class="km">${Number(s.km).toFixed(2)} km</div></button>`;
   });
-  if (interesting.length > 15) cards.push(`<div class="muted" style="font-size:13px">+ ${interesting.length - 15} more gaps (hover the map to see them)</div>`);
+  if (interesting.length > 15) cards.push(`<div class="muted" style="font-size:13px">+ ${interesting.length - 15} more gaps (click the dashed lines on the map)</div>`);
   if (!interesting.length) cards.push('<div class="muted" style="font-size:13px">No gaps in this trip. GPS never went quiet for long.</div>');
+  else cards.unshift('<div class="seg-hint">Click a gap to see it on the map.</div>');
   cards.push(`<div class="seg hops"><span class="lbl">${hops.length} short hops between pings</span><span class="km">${hopKm.toFixed(2)} km</span></div>`);
   $('d-segs').innerHTML = cards.join('');
+  $('d-segs').querySelectorAll('button.seg').forEach(b => b.onclick = () => focusSegment(Number(b.dataset.seq)));
+}
+
+// The banner over the map: one line per GPS gap, saying how long GPS was off and how it was paid.
+function renderGaps(br) {
+  const gaps = findGpsGaps(br);
+  const box = $('d-gaps');
+  if (!gaps.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  box.innerHTML = gaps.map(g => {
+    const via = g.anchors.length ? ` through ${g.anchors.map(a => esc(anchorLabel(a))).join(', ')}` : '';
+    const legs = `${g.legs.length} leg${g.legs.length === 1 ? '' : 's'}`;
+    const how = g.degraded ? `guessed as straight line × 1.4 (map service was down). It is fixed by itself once the service is back.`
+      : g.rejected ? `paid as a straight line and flagged for a look.`
+      : `measured as road distance${via}: <b>${g.km.toFixed(2)} km</b>, where a straight line across the gap would pay only ${g.straightKm.toFixed(2)} km.`;
+    return `<div class="card gap-banner ${g.degraded ? 'warn' : ''}">
+      <div class="gap-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><path d="M4 4l16 16"/></svg></div>
+      <div class="gap-text">
+        <div class="gap-title">GPS was off for ${g.minutes} min (${time(g.from)} - ${time(g.to)})</div>
+        <div class="muted">No pings at all. The gap was split into ${legs} and ${how}</div>
+      </div>
+      <button class="btn small" data-gap="${g.n}">Show on map</button></div>`;
+  }).join('');
+  box.querySelectorAll('[data-gap]').forEach(b => b.onclick = () => focusGap(Number(b.dataset.gap)));
+}
+
+function focusGap(n) {
+  if (!map || !gapBounds[n]) return;
+  clearFocus();
+  $('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  map.fitBounds(gapBounds[n], { padding: [60, 60], maxZoom: 16 });
+}
+
+function focusSegment(seq) {
+  const line = segLines[seq];
+  clearFocus();
+  document.querySelectorAll('#d-segs button.seg').forEach(b => b.classList.toggle('active', Number(b.dataset.seq) === seq));
+  if (!map || !line) return;
+  focused = line;
+  line.setStyle({ weight: 9, opacity: 1 });
+  line.bringToFront();
+  map.fitBounds(line.getBounds(), { padding: [80, 80], maxZoom: 16 });
+  line.openTooltip();
+}
+
+function clearFocus() {
+  if (focused) { focused.setStyle({ weight: 5, opacity: .95 }); focused.closeTooltip(); focused = null; }
+  document.querySelectorAll('#d-segs button.seg.active').forEach(b => b.classList.remove('active'));
 }
 
 function renderCleaning(br) {
@@ -1077,7 +1654,7 @@ function renderInvoice(a) {
   } else {
     const deltaMm = a.adjustments.reduce((t, x) => t + x.deltaMm, 0);
     const delta = deltaMm / 1e6;
-    const deltaTxt = (delta > 0 ? '+' : delta < 0 ? '' : '±') + delta.toFixed(2);
+    const deltaTxt = (delta > 0 ? '+' : '') + delta.toFixed(2);
     const lines = a.adjustments.map(x => `<tr><td>${dateTime(x.createdAt)}</td>
         <td class="hide-sm"><span class="chip">${short(x.fromRunId)}</span> → <span class="chip">${short(x.toRunId)}</span></td>
         <td class="num ${x.deltaKm.startsWith('-') ? 'delta-neg' : 'delta-pos'}">${x.deltaKm} km</td></tr>`).join('');
@@ -1092,7 +1669,7 @@ function renderInvoice(a) {
         <button class="btn" id="d-csv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Download as CSV</button>
       </div>
       ${a.adjustments.length ? `<div class="table-wrap"><table><thead><tr><th>When</th><th class="hide-sm">From run → to run</th><th class="num">Change</th></tr></thead><tbody>${lines}</tbody></table></div>`
-        : '<div class="empty">No changes since it was billed.</div>'}
+        : `<div class="empty"><b>No changes since it was billed.</b><br>The ${esc(a.billedKm)} km on the invoice already include every gap that was filled (GPS gaps, anchors, routed legs).<br>An adjustment only appears if the km change <i>after</i> billing, for example late pings or a fix after a map outage.</div>`}
       <div class="inv-foot"><span>The invoice is never edited. Every later change is its own signed line.</span>${lateBtn}</div>`;
     $('d-csv').onclick = () => downloadCsv(a);
   }
@@ -1269,6 +1846,10 @@ async function lookUpAsEmployee(id) {
 }
 
 // ---------- small helpers ----------
+function scenarioTag(id) {
+  const m = state.scenarios[id], sc = m && scenarioByKey(m.key);
+  return sc ? ` <span class="tag ${sc.tag}" title="${esc(sc.title)}">${sc.short}</span>` : '';
+}
 function statusClass(s) { return s === 'COMPUTED' ? 'ok' : s === 'DEGRADED' ? 'warn' : s === 'RECEIVED' ? 'info' : ''; }
 function anchorLabel(a) {
   if (a.kind === 'OFFICE') return 'Office';
@@ -1300,8 +1881,6 @@ function showError(e) {
 }
 
 // ---------- wiring ----------
-$('btn-sample').onclick = (e) => uploadTrip(false, e.currentTarget);
-$('btn-badfix').onclick = (e) => uploadTrip(true, e.currentTarget);
 $('d-recompute').onclick = (e) => recomputeTrip(state.tripId, e.currentTarget);
 $('d-bill').onclick = billTrip;
 $('s-toggle').onclick = toggleProvider;

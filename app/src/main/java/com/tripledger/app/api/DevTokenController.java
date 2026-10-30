@@ -38,7 +38,7 @@ public class DevTokenController {
             @NotBlank @Schema(example = "acme") String tenant,
             @NotBlank @Schema(example = "priya.ops") String subject,
             @NotEmpty @Schema(example = "[\"OPERATOR\"]") Set<Role> roles,
-            @Schema(description = "only for EMPLOYEE tokens: which employee this is", example = "e-104") String employeeRef) {
+            @Schema(description = "only for EMPLOYEE tokens: which employee this is", example = "EMP-2417") String employeeRef) {
     }
 
     public record DevTokenResponse(String token, Instant expiresAt) {

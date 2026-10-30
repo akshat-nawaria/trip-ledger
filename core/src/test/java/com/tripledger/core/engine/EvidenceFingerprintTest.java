@@ -29,9 +29,9 @@ class EvidenceFingerprintTest {
     private final List<Ping> pings = straightNorth(40, 5, 50);
     private final List<Milestone> milestones = List.of(
             milestone(null, MilestoneType.TRIP_START, OFFICE, 0),
-            milestone("e-104", MilestoneType.DROP, north(OFFICE, 1_500), 150),
-            new Milestone("e-217", MilestoneType.NO_SHOW, null, null)); // no point, no time - still fine
-    private final List<PlannedStop> stops = List.of(planned("e-104", north(OFFICE, 1_500), 150));
+            milestone("EMP-2417", MilestoneType.DROP, north(OFFICE, 1_500), 150),
+            new Milestone("EMP-7721", MilestoneType.NO_SHOW, null, null)); // no point, no time - still fine
+    private final List<PlannedStop> stops = List.of(planned("EMP-2417", north(OFFICE, 1_500), 150));
 
     private String fingerprint(List<Ping> p, List<Milestone> m) {
         return EvidenceFingerprint.of(trip(TripType.LOGOUT, p, m, stops), rules, "v1");

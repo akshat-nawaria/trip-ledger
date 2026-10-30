@@ -11,9 +11,9 @@ class CallerTest {
 
     @Test
     void aPlainEmployeeOnlySeesTheirOwnTrips() {
-        Caller employee = new Caller("acme", "u1", Set.of(Role.EMPLOYEE), "e-104");
+        Caller employee = new Caller("acme", "u1", Set.of(Role.EMPLOYEE), "EMP-2417");
 
-        assertThat(employee.onlyTripsOf()).isEqualTo(Optional.of("e-104"));
+        assertThat(employee.onlyTripsOf()).isEqualTo(Optional.of("EMP-2417"));
     }
 
     @Test
@@ -24,7 +24,7 @@ class CallerTest {
 
     @Test
     void anEmployeeWhoIsAlsoStaffIsNotLimited() {
-        Caller both = new Caller("acme", "u4", Set.of(Role.EMPLOYEE, Role.OPERATOR), "e-104");
+        Caller both = new Caller("acme", "u4", Set.of(Role.EMPLOYEE, Role.OPERATOR), "EMP-2417");
 
         assertThat(both.onlyTripsOf()).isEqualTo(Optional.empty());
     }

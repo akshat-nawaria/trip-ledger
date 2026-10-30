@@ -51,7 +51,7 @@ Every value marked *configurable* lives in `application.yml` (and in the core `B
 | A45 | Pinned routes | A gap with exactly the same start and end as one an earlier run routed reuses that answer; the newest wins | — |
 | A46 | Metrics endpoint | `/actuator/prometheus` needs no token, like `/actuator/health`. It only holds counts and timings, never a tenant or trip id. In production it would sit behind the internal network | — |
 | A47 | Mock outage switch | `PUT /v1/admin/routing/mock` works only while the provider is the mock one; with a real map service it is refused (400). It is for demos and tests | — |
-| A48 | Demo console | Gets its own ADMIN + OPERATOR token from the dev token endpoint, so it only works where that endpoint is on (local / Docker demo) | — |
+| A48 | Demo console | Gets a token from the dev token endpoint for the company and role picked at sign-in (Admin+Operator, Operator, or Employee with an employee id), so it only works where that endpoint is on (local / Docker demo). Each role sees only what the API allows it | — |
 | A49 | Metric tags | No tag per tenant or trip (one time series per trip would overload Prometheus). Per-trip detail lives in the database and the logs | — |
 | A50 | Recovery after an outage | The breaker moves OPEN → HALF_OPEN on a timer (30 s), with or without traffic. While HALF_OPEN the recovery scan queues only as many trips as the breaker allows trial calls (3); once CLOSED, a full batch of 100 | Yes |
 | A51 | Benchmark trips | Synthetic but realistic (`TripFactory`): 400 recurring routes, ~1,500 pings at 4 s, jitter, 1 % bad fixes, 0.2 % teleports, 0.5 % duplicates, out-of-order batches, 1–3 GPS dead zones per route, 4 % drops without a location. Same seed, same trips on every machine | Yes (seed) |

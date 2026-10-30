@@ -47,7 +47,7 @@ class DistanceEngineTest {
     //
     //  office --(9.0 km of pings)--> G0 ===== 22 min, no GPS ===== G1 --(7.0 km of pings)--> home
     //                                  \                         /
-    //                                   \-- drop of e-104 at D --/
+    //                                   \-- drop of EMP-2417 at D --/
     //
     //  straight across G0 -> G1 is only 2.4 km (that's what the naive sum pays),
     //  but the cab actually drove G0 -> D (7.0 km by road) and D -> G1 (7.6 km by road).
@@ -63,8 +63,8 @@ class DistanceEngineTest {
         pings.addAll(afterGap);
         return trip(TripType.LOGOUT, pings,
                 List.of(milestone(null, MilestoneType.TRIP_START, OFFICE, 0),
-                        milestone("e-104", MilestoneType.DROP, dropPoint, 1_560)),
-                List.of(planned("e-104", dropPoint, 1_560)));
+                        milestone("EMP-2417", MilestoneType.DROP, dropPoint, 1_560)),
+                List.of(planned("EMP-2417", dropPoint, 1_560)));
     }
 
     private FakeRouteLookup underpassRoads() {
@@ -116,7 +116,7 @@ class DistanceEngineTest {
         assertThat(result.anchors().get(0).kind()).isEqualTo(AnchorKind.OFFICE);
         assertThat(result.anchors().get(0).source()).isEqualTo(AnchorSource.ACTUAL);
         assertThat(result.anchors().get(1).kind()).isEqualTo(AnchorKind.EMPLOYEE_DROP);
-        assertThat(result.anchors().get(1).employeeRef()).isEqualTo("e-104");
+        assertThat(result.anchors().get(1).employeeRef()).isEqualTo("EMP-2417");
     }
 
     @Test

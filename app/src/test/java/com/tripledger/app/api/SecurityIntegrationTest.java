@@ -93,7 +93,7 @@ class SecurityIntegrationTest extends ApiTestBase {
 
     @Test
     void anEmployeeCannotUploadEvidence() throws Exception {
-        upload(newTripId(), newKey(), TestEvidence.trip().all(), employee("e-104"))
+        upload(newTripId(), newKey(), TestEvidence.trip().all(), employee("EMP-2417"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"));
     }
@@ -110,14 +110,14 @@ class SecurityIntegrationTest extends ApiTestBase {
     @Test
     void anEmployeeSeesTheirOwnTripOnlyAndNeverTheBreakdown() throws Exception {
         String tripId = newTripId();
-        upload(tripId, newKey(), TestEvidence.trip().withDropOf("e-104")).andExpect(status().isAccepted());
+        upload(tripId, newKey(), TestEvidence.trip().withDropOf("EMP-2417")).andExpect(status().isAccepted());
 
-        getAs(employee("e-104"), "/v1/trips/{id}/distance", tripId)
+        getAs(employee("EMP-2417"), "/v1/trips/{id}/distance", tripId)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPUTED"));
-        getAs(employee("e-999"), "/v1/trips/{id}/distance", tripId)
+        getAs(employee("EMP-5530"), "/v1/trips/{id}/distance", tripId)
                 .andExpect(status().isNotFound()); // not "forbidden": we don't confirm the trip exists
-        getAs(employee("e-104"), "/v1/trips/{id}/breakdown", tripId)
+        getAs(employee("EMP-2417"), "/v1/trips/{id}/breakdown", tripId)
                 .andExpect(status().isForbidden());
     }
 
