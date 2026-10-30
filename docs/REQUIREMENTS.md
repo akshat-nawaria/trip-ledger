@@ -34,9 +34,9 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 | P02 | Time and space complexity, small benchmark, where it stops scaling | S1, S9 | DESIGN.md + benchmark | [x] DESIGN §11 + measured limits in `bench/results.md` |
 | P03 | Fault tolerance: crashes, timeouts, duplicates, out-of-order, partial failure; one failure-injection test | S5, S7 | Crash + duplicate tests | [x] Duplicates, retries, split uploads, outage (S5); crashed-worker lease recovery, failing job → FAILED, retry back-off (S7, `JobsIntegrationTest`) |
 | P04 | OOP: encapsulation, inheritance, polymorphism; controller / service / repository | S2–S5 | Core runs with no Spring | [x] `TripController` → `EvidenceService` / `DistanceService` / `TripQueryService` → repositories; `CoreModuleIsolationTest` |
-| P05 | Documented trade-offs (consistency vs availability vs latency), what was left out | S1, S10 | README section | [ ] |
+| P05 | Documented trade-offs (consistency vs availability vs latency), what was left out | S1, S10 | README section | [x] README "Trade-offs (short note)" + "Left out on purpose"; full table in DESIGN §12 |
 | P06 | Metrics + structured logging: lag, error rate, rejections, retries, queue depth | S8 | Grafana dashboard | [x] Prometheus metrics for lag, queue depth, retries, rejections (`segments{rule=REJECTED_*}`), routing calls, breaker; API error rate + p95 from Spring; provisioned Grafana dashboard; ECS JSON logs with `traceId` / `tenantId` / `tripId` (`MetricsIntegrationTest`) |
-| P07 | Caching with eviction policy; what can go stale, for how long, how it is bounded | S4 | Staleness table | [ ] |
+| P07 | Caching with eviction policy; what can go stale, for how long, how it is bounded | S4, S10 | Staleness table | [x] Caffeine W-TinyLFU, 100k roads, 7-day TTL, failures never cached, pinned roads per run; staleness table in README and DESIGN §7 |
 | P08 | Error handling with non-leaking messages; no personal data in logs or errors | S6 | Log-scan test | [x] problem+json with `code` + `traceId`; 500s say nothing internal; log scan finds no employee refs or coordinates (`ErrorHandlingIntegrationTest`) |
 
 ## Advanced track
@@ -52,5 +52,5 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 
 | ID | Requirement | Segment | Proof | Done |
 |----|-------------|---------|-------|------|
-| I01 | Public GitHub repo with meaningful commit history | S0, S10 | Commit log | [ ] |
-| I02 | Demo video: main flows, one live failure, sample API calls | S10 | Link in README | [ ] Demo console + live map-service switch ready (S8) |
+| I01 | Public GitHub repo with meaningful commit history | S0, S10 | Commit log | [x] One commit per logical change, segment by segment (40+ commits), CI on every push |
+| I02 | Demo video: main flows, one live failure, sample API calls | S10 | Link in README | [~] Demo console (S8) + Postman collection with a live outage (S10) ready; link goes in the README once recorded |

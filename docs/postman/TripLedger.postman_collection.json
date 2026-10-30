@@ -1,0 +1,1109 @@
+{
+  "info": {
+    "_postman_id": "f2b5e27c-32e5-5b46-a71f-fc9171531251",
+    "name": "TripLedger demo",
+    "description": "Run the folders in order (or the whole collection with the Runner) against a running TripLedger: `docker compose up -d --build`, or `mvn -pl app spring-boot:run`. Every request has tests that check the expected answer.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "employeeToken",
+      "value": ""
+    },
+    {
+      "key": "otherToken",
+      "value": ""
+    },
+    {
+      "key": "tripId",
+      "value": ""
+    },
+    {
+      "key": "tripB",
+      "value": ""
+    },
+    {
+      "key": "invoiceId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1 \u00b7 Sign in",
+      "item": [
+        {
+          "name": "Get a demo token (admin + operator)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const run = Date.now().toString(36).toUpperCase();",
+                  "pm.collectionVariables.set('tripId', 'T-DEMO-' + run);",
+                  "pm.collectionVariables.set('tripB', 'T-DEMO-' + run + '-B');",
+                  "pm.collectionVariables.set('invoiceId', 'INV-' + run);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('token issued', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/dev/tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "dev",
+                "tokens"
+              ]
+            },
+            "description": "Local only. Also picks fresh trip ids for this run, so the demo can be repeated on the same database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant\": \"acme\",\n  \"subject\": \"demo\",\n  \"roles\": [\n    \"ADMIN\",\n    \"OPERATOR\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 \u00b7 The underpass trip",
+      "item": [
+        {
+          "name": "Upload the trip",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('202 Accepted', () => pm.response.to.have.status(202));",
+                  "pm.test('computed straight away', () => pm.expect(pm.response.json().status).to.eql('COMPUTED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{tripId}}-part-1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/evidence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "evidence"
+              ]
+            },
+            "description": "24 pings, then 20 minutes without GPS (an underpass) during which employee e-104 is dropped, then GPS is back 2 km east. Naive sum of pings: 3.10 km.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\": \"LOGOUT\",\n  \"windowStart\": \"2026-10-29T17:55:00+05:30\",\n  \"windowEnd\": \"2026-10-29T20:00:00+05:30\",\n  \"plannedOffice\": {\n    \"lat\": 12.9698,\n    \"lon\": 77.75\n  },\n  \"pings\": [\n    {\n      \"ts\": \"2026-10-29T18:00:00+05:30\",\n      \"lat\": 12.9698,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 0\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:05+05:30\",\n      \"lat\": 12.97025,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 1\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:10+05:30\",\n      \"lat\": 12.970699,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 2\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:15+05:30\",\n      \"lat\": 12.971149,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 3\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:20+05:30\",\n      \"lat\": 12.971599,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 4\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:25+05:30\",\n      \"lat\": 12.972048,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 5\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:30+05:30\",\n      \"lat\": 12.972498,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 6\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:35+05:30\",\n      \"lat\": 12.972948,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 7\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:40+05:30\",\n      \"lat\": 12.973397,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 8\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:45+05:30\",\n      \"lat\": 12.973847,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 9\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:50+05:30\",\n      \"lat\": 12.974297,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 10\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:55+05:30\",\n      \"lat\": 12.974746,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 11\n    },\n    {\n      \"ts\": \"2026-10-29T18:20:55+05:30\",\n      \"lat\": 12.974746,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 12\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:00+05:30\",\n      \"lat\": 12.975196,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 13\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:05+05:30\",\n      \"lat\": 12.975645,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 14\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:10+05:30\",\n      \"lat\": 12.976095,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 15\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:15+05:30\",\n      \"lat\": 12.976545,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 16\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:20+05:30\",\n      \"lat\": 12.976994,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 17\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:25+05:30\",\n      \"lat\": 12.977444,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 18\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:30+05:30\",\n      \"lat\": 12.977894,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 19\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:35+05:30\",\n      \"lat\": 12.978343,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 20\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:40+05:30\",\n      \"lat\": 12.978793,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 21\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:45+05:30\",\n      \"lat\": 12.979243,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 22\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:50+05:30\",\n      \"lat\": 12.979692,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 23\n    }\n  ],\n  \"milestones\": [\n    {\n      \"type\": \"TRIP_START\",\n      \"lat\": 12.9698,\n      \"lon\": 77.75,\n      \"ts\": \"2026-10-29T18:00:00+05:30\"\n    },\n    {\n      \"employeeRef\": \"e-104\",\n      \"type\": \"DROP\",\n      \"lat\": 13.001726,\n      \"lon\": 77.763843,\n      \"ts\": \"2026-10-29T18:10:55+05:30\"\n    }\n  ],\n  \"plannedStops\": [\n    {\n      \"employeeRef\": \"e-104\",\n      \"riderType\": \"PLANNED\",\n      \"lat\": 13.001726,\n      \"lon\": 77.763843,\n      \"plannedTs\": \"2026-10-29T18:11:00+05:30\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Same upload again (a retry) \u2192 nothing redone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('replayed', () => pm.expect(pm.response.json().replayed).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{tripId}}-part-1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/evidence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "evidence"
+              ]
+            },
+            "description": "Same Idempotency-Key and body: answered from the first upload, no ping is counted twice.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\": \"LOGOUT\",\n  \"windowStart\": \"2026-10-29T17:55:00+05:30\",\n  \"windowEnd\": \"2026-10-29T20:00:00+05:30\",\n  \"plannedOffice\": {\n    \"lat\": 12.9698,\n    \"lon\": 77.75\n  },\n  \"pings\": [\n    {\n      \"ts\": \"2026-10-29T18:00:00+05:30\",\n      \"lat\": 12.9698,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 0\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:05+05:30\",\n      \"lat\": 12.97025,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 1\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:10+05:30\",\n      \"lat\": 12.970699,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 2\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:15+05:30\",\n      \"lat\": 12.971149,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 3\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:20+05:30\",\n      \"lat\": 12.971599,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 4\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:25+05:30\",\n      \"lat\": 12.972048,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 5\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:30+05:30\",\n      \"lat\": 12.972498,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 6\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:35+05:30\",\n      \"lat\": 12.972948,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 7\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:40+05:30\",\n      \"lat\": 12.973397,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 8\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:45+05:30\",\n      \"lat\": 12.973847,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 9\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:50+05:30\",\n      \"lat\": 12.974297,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 10\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:55+05:30\",\n      \"lat\": 12.974746,\n      \"lon\": 77.75,\n      \"accuracyM\": 6,\n      \"seq\": 11\n    },\n    {\n      \"ts\": \"2026-10-29T18:20:55+05:30\",\n      \"lat\": 12.974746,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 12\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:00+05:30\",\n      \"lat\": 12.975196,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 13\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:05+05:30\",\n      \"lat\": 12.975645,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 14\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:10+05:30\",\n      \"lat\": 12.976095,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 15\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:15+05:30\",\n      \"lat\": 12.976545,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 16\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:20+05:30\",\n      \"lat\": 12.976994,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 17\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:25+05:30\",\n      \"lat\": 12.977444,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 18\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:30+05:30\",\n      \"lat\": 12.977894,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 19\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:35+05:30\",\n      \"lat\": 12.978343,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 20\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:40+05:30\",\n      \"lat\": 12.978793,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 21\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:45+05:30\",\n      \"lat\": 12.979243,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 22\n    },\n    {\n      \"ts\": \"2026-10-29T18:21:50+05:30\",\n      \"lat\": 12.979692,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 23\n    }\n  ],\n  \"milestones\": [\n    {\n      \"type\": \"TRIP_START\",\n      \"lat\": 12.9698,\n      \"lon\": 77.75,\n      \"ts\": \"2026-10-29T18:00:00+05:30\"\n    },\n    {\n      \"employeeRef\": \"e-104\",\n      \"type\": \"DROP\",\n      \"lat\": 13.001726,\n      \"lon\": 77.763843,\n      \"ts\": \"2026-10-29T18:10:55+05:30\"\n    }\n  ],\n  \"plannedStops\": [\n    {\n      \"employeeRef\": \"e-104\",\n      \"riderType\": \"PLANNED\",\n      \"lat\": 13.001726,\n      \"lon\": 77.763843,\n      \"plannedTs\": \"2026-10-29T18:11:00+05:30\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Billable km",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const d = pm.response.json();",
+                  "pm.test('9.42 km', () => pm.expect(d.billableKm).to.eql('9.42'));",
+                  "pm.test('2 road lookups, one per real gap', () => pm.expect(d.routing.requests + d.routing.replayed).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/distance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "distance"
+              ]
+            },
+            "description": "Expect 9.42 km (naive 3.10 km) and 2 road lookups, one per real gap, through the drop point. The first run pays for 2 calls; repeat runs get them from the cache."
+          }
+        },
+        {
+          "name": "Breakdown: every segment has its rule",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('2 routed pieces', () => pm.expect(pm.response.json().ruleCounts.ROUTED).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/breakdown",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "breakdown"
+              ]
+            },
+            "description": "23 SHORT_GAP_AERIAL pieces between pings, 2 ROUTED pieces for the gap (via the drop of e-104), plus the cleaning report and the anchors used."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 \u00b7 Bad GPS fix: 9 km away for 4 seconds",
+      "item": [
+        {
+          "name": "Upload the bad fix",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('202 Accepted', () => pm.response.to.have.status(202));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{tripId}}-part-2"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/evidence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "evidence"
+              ]
+            },
+            "description": "Two pings 9 km east of the cab, 3 s apart. Implied speed thousands of km/h.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\": \"LOGOUT\",\n  \"windowStart\": \"2026-10-29T17:55:00+05:30\",\n  \"windowEnd\": \"2026-10-29T20:00:00+05:30\",\n  \"plannedOffice\": {\n    \"lat\": 12.9698,\n    \"lon\": 77.75\n  },\n  \"pings\": [\n    {\n      \"ts\": \"2026-10-29T18:00:31+05:30\",\n      \"lat\": 12.972543,\n      \"lon\": 77.833058,\n      \"accuracyM\": 5,\n      \"seq\": 99\n    },\n    {\n      \"ts\": \"2026-10-29T18:00:34+05:30\",\n      \"lat\": 12.97257,\n      \"lon\": 77.83315,\n      \"accuracyM\": 5,\n      \"seq\": 100\n    }\n  ],\n  \"milestones\": [],\n  \"plannedStops\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Km unchanged, teleports dropped",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "pm.test('still 9.42 km', () => pm.expect(b.billableKm).to.eql('9.42'));",
+                  "pm.test('2 teleports dropped', () => pm.expect(b.cleaning.removed.teleport).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/breakdown",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "breakdown"
+              ]
+            },
+            "description": "Still 9.42 km; the cleaning report shows teleport: 2. The two known roads were replayed, no new paid calls."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 \u00b7 Billing and late pings",
+      "item": [
+        {
+          "name": "Put the trip on an invoice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('billed 9.42 km', () => pm.expect(pm.response.json().billedKm).to.eql('9.42'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/bill",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "bill"
+              ]
+            },
+            "description": "Freezes the current run and km (9.42) on the invoice. Nothing will ever edit it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoiceId\": \"{{invoiceId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Late pings arrive after billing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('202 Accepted', () => pm.response.to.have.status(202));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{tripId}}-part-3"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/evidence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "evidence"
+              ]
+            },
+            "description": "The phone was offline at the end of the trip: 10 more pings, 500 m.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\": \"LOGOUT\",\n  \"windowStart\": \"2026-10-29T17:55:00+05:30\",\n  \"windowEnd\": \"2026-10-29T20:00:00+05:30\",\n  \"plannedOffice\": {\n    \"lat\": 12.9698,\n    \"lon\": 77.75\n  },\n  \"pings\": [\n    {\n      \"ts\": \"2026-10-29T18:21:55+05:30\",\n      \"lat\": 12.980142,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 24\n    },\n    {\n      \"ts\": \"2026-10-29T18:22:00+05:30\",\n      \"lat\": 12.980592,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 25\n    },\n    {\n      \"ts\": \"2026-10-29T18:22:05+05:30\",\n      \"lat\": 12.981041,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 26\n    },\n    {\n      \"ts\": \"2026-10-29T18:22:10+05:30\",\n      \"lat\": 12.981491,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 27\n    },\n    {\n      \"ts\": \"2026-10-29T18:22:15+05:30\",\n      \"lat\": 12.981941,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 28\n    },\n    {\n      \"ts\": \"2026-10-29T18:22:20+05:30\",\n      \"lat\": 12.98239,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 29\n    },\n    {\n      \"ts\": \"2026-10-29T18:22:25+05:30\",\n      \"lat\": 12.98284,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 30\n    },\n    {\n      \"ts\": \"2026-10-29T18:22:30+05:30\",\n      \"lat\": 12.98329,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 31\n    },\n    {\n      \"ts\": \"2026-10-29T18:22:35+05:30\",\n      \"lat\": 12.983739,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 32\n    },\n    {\n      \"ts\": \"2026-10-29T18:22:40+05:30\",\n      \"lat\": 12.984189,\n      \"lon\": 77.768458,\n      \"accuracyM\": 6,\n      \"seq\": 33\n    }\n  ],\n  \"milestones\": [],\n  \"plannedStops\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Signed adjustment, invoice untouched",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const a = pm.response.json();",
+                  "pm.test('invoice unchanged', () => pm.expect(a.billedKm).to.eql('9.42'));",
+                  "pm.test('+0.50 adjustment', () => pm.expect(a.adjustments[0].deltaKm).to.eql('+0.50'));",
+                  "pm.test('charged 9.92', () => pm.expect(a.chargedKm).to.eql('9.92'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/adjustments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "adjustments"
+              ]
+            },
+            "description": "Invoice still says 9.42; one adjustment +0.50; charged in total 9.92 = the trip's km now."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 \u00b7 Live failure: the map service goes down",
+      "item": [
+        {
+          "name": "Switch the map service OFF",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('provider down', () => pm.expect(pm.response.json().routing.providerDown).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/routing/mock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "routing",
+                "mock"
+              ]
+            },
+            "description": "Demo switch, works only with the mock provider.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"down\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Upload another trip \u2192 DEGRADED",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const R = 6371008.8, MPD = R * Math.PI / 180;",
+                  "const T0 = Date.parse('2026-10-29T18:00:00+05:30');",
+                  "const ts = (s) => new Date(T0 + s * 1000).toISOString();",
+                  "const office = { lat: 12.9698, lon: 77.75 + (6000 + Math.random() * 20000) / (MPD * Math.cos(12.9698 * Math.PI / 180)) };",
+                  "const move = (p, n, e) => ({ lat: +(p.lat + n / MPD).toFixed(6), lon: +(p.lon + e / (MPD * Math.cos(p.lat * Math.PI / 180))).toFixed(6) });",
+                  "const ping = (s, p, seq) => ({ ts: ts(s), lat: p.lat, lon: p.lon, accuracyM: 6, seq });",
+                  "const pings = [];",
+                  "for (let i = 0; i < 12; i++) pings.push(ping(5 * i, move(office, 50 * i, 0), i));",
+                  "const last = move(office, 550, 0), drop = move(last, 3000, 1500), back = move(last, 0, 2000);",
+                  "for (let j = 0; j < 12; j++) pings.push(ping(1255 + 5 * j, move(back, 50 * j, 0), 12 + j));",
+                  "pm.variables.set('tripBBody', JSON.stringify({",
+                  "  tripType: 'LOGOUT', windowStart: ts(-300), windowEnd: ts(7200), plannedOffice: office, pings,",
+                  "  milestones: [{ type: 'TRIP_START', lat: office.lat, lon: office.lon, ts: ts(0) },",
+                  "               { employeeRef: 'e-205', type: 'DROP', lat: drop.lat, lon: drop.lon, ts: ts(655) }],",
+                  "  plannedStops: [{ employeeRef: 'e-205', riderType: 'PLANNED', lat: drop.lat, lon: drop.lon, plannedTs: ts(660) }]",
+                  "}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DEGRADED', () => pm.expect(pm.response.json().status).to.eql('DEGRADED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{tripB}}-part-1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripB}}/evidence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripB}}",
+                "evidence"
+              ]
+            },
+            "description": "Same shape of trip, built in the pre-request script at a random spot 6-26 km east, so none of its roads are cached. Its gap can't be routed: straight line x 1.4 (about 10 km), status DEGRADED, still billable.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{tripBBody}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "The DEGRADED backlog",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('our trip is waiting', () => pm.expect(pm.response.json().map(t => t.tripId)).to.include(pm.collectionVariables.get('tripB')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips?status=DEGRADED&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "DEGRADED"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "What the recovery scan will pick up."
+          }
+        },
+        {
+          "name": "Km while degraded (provisional)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DEGRADED guess', () => pm.expect(pm.response.json().status).to.eql('DEGRADED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripB}}/distance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripB}}",
+                "distance"
+              ]
+            },
+            "description": "About 10 km: the straight-line x 1.4 guess, marked DEGRADED."
+          }
+        },
+        {
+          "name": "Switch the map service ON",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('provider up', () => pm.expect(pm.response.json().routing.providerDown).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/admin/routing/mock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "admin",
+                "routing",
+                "mock"
+              ]
+            },
+            "description": "The recovery scan would bring the trip back within a minute by itself; the next request just does it now.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"down\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Recompute \u2192 COMPUTED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('COMPUTED', () => pm.expect(pm.response.json().status).to.eql('COMPUTED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripB}}/recompute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripB}}",
+                "recompute"
+              ]
+            },
+            "description": "Now the gap is routed properly: about 9.4 km, COMPUTED. If it still says DEGRADED, the circuit breaker opened and is waiting out its 30 s: wait, then send again."
+          }
+        },
+        {
+          "name": "Km after recovery",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('COMPUTED', () => pm.expect(pm.response.json().status).to.eql('COMPUTED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripB}}/distance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripB}}",
+                "distance"
+              ]
+            },
+            "description": "About 9.4 km instead of the 10 km guess."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 \u00b7 Security and errors",
+      "item": [
+        {
+          "name": "No token \u2192 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/distance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "distance"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Token for employee e-104",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('employeeToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/dev/tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "dev",
+                "tokens"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant\": \"acme\",\n  \"subject\": \"e-104\",\n  \"roles\": [\n    \"EMPLOYEE\"\n  ],\n  \"employeeRef\": \"e-104\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Employee reads the km of their own trip \u2192 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/distance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "distance"
+              ]
+            },
+            "description": "e-104 was dropped on this trip.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{employeeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Employee asks for the breakdown \u2192 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/breakdown",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "breakdown"
+              ]
+            },
+            "description": "Only operators and admins see segments.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{employeeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Token for another company",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('otherToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/dev/tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "dev",
+                "tokens"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant\": \"globex\",\n  \"subject\": \"someone\",\n  \"roles\": [\n    \"ADMIN\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Another company reads our trip \u2192 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('404', () => pm.response.to.have.status(404));",
+                  "pm.test('problem+json with a code and traceId', () => { const p = pm.response.json(); pm.expect(p.code).to.eql('TRIP_NOT_FOUND'); pm.expect(p.traceId).to.be.a('string'); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}/distance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}",
+                "distance"
+              ]
+            },
+            "description": "404, not 403: it doesn't even learn the trip exists.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bad input \u2192 400 with a clear message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "bad-1"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}-bad/evidence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}-bad",
+                "evidence"
+              ]
+            },
+            "description": "Trip window ends before it starts.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripType\": \"LOGOUT\",\n  \"windowStart\": \"2026-10-29T20:00:00+05:30\",\n  \"windowEnd\": \"2026-10-29T18:00:00+05:30\",\n  \"plannedOffice\": {\n    \"lat\": 12.9698,\n    \"lon\": 77.75\n  },\n  \"pings\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

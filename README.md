@@ -9,7 +9,18 @@ MoveInSync Backend Case Study 2026 · Case Study 1 · Advanced Track.
 Rebuilds a trustworthy, explainable billable distance for every cab trip from unreliable GPS data.
 Every kilometre carries the rule that produced it, the same input always gives the same answer, and paid routing calls are kept to a minimum.
 
-> Status: **Segments S0–S9 complete.** Distance engine (underpass trip **18.4 → 30.61 km**, **2 routing calls**), cached + circuit-broken routing, secured multi-company REST API on PostgreSQL, a crash-safe job queue with automatic recompute and **signed adjustments** for late pings, Prometheus + Grafana + a demo console from **one `docker compose up`**, and now a benchmark: **10,000 trips × ~1,570 pings in 7.4 s on one core, 89 MB heap, 0.78 paid routing calls per trip**, and an outage halfway fully recovered to the exact km. **253 tests.** See [bench/results.md](bench/results.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
+**🎥 Demo video:** _link to be added_ — main flows, a live map-service outage, and sample API calls.
+
+| What the case study asks | Where it is |
+|---|---|
+| Run it with one command | `docker compose up --build` → console at http://localhost:8080, Grafana at :3000 ([Quick start](#quick-start)) |
+| The 31 km underpass trip: naive 18.4 km → **30.61 km**, 2 routing calls | `DistanceEngineTest.underpassTripComesOutAtAbout30Point6KmNot18Point4` ([examples](#the-case-study-examples-as-tests)) |
+| 10,000 trips × ~1,500 pings, run time, memory, provider failing halfway | **7.4 s on one core, 89 MB heap; outage fully recovered to the exact km** ([bench/results.md](bench/results.md)) |
+| Load test with throughput, p50 / p99 and the machine | **95 req/s, 0 errors, 10,091 pings/s; p99 upload 977 ms, reads < 300 ms** on an i5-13420H laptop |
+| Routing calls before / after caching | every pair 15.5 M → rules 23,296 → **rules + cache 7,757 (0.78 per trip)** |
+| Design note: architecture, hardest-flow sequence, failure modes | [docs/DESIGN.md](docs/DESIGN.md) |
+| Assumptions · trade-offs · what was left out | [below](#assumptions-the-ones-that-matter-most) and [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md) |
+| Every requirement → where it's built → the test that proves it | [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) · **253 tests**, CI on every push |
 
 ## Quick start
 
@@ -77,6 +88,18 @@ curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/v1/trips?status=DE
 
 In Swagger UI: call `POST /v1/dev/tokens`, copy the token, click **Authorize**, paste it.
 
+**Postman:** import [`docs/postman/TripLedger.postman_collection.json`](docs/postman/TripLedger.postman_collection.json) and run it top to bottom (or with the Collection Runner). 24 requests walk through the whole story, and each one tests its own answer: the underpass trip (9.42 km), a retry that redoes nothing, a bad GPS fix that changes nothing, billing, late pings (+0.50 km adjustment), a live map-service outage (DEGRADED → recompute → COMPUTED), and the security rules (401 / 403 / 404 / 400). No Postman? Run the same collection with Newman in Docker while the stack is up:
+
+```bash
+# macOS / Linux
+docker run --rm --network tripledger_default -v "$(pwd)/docs/postman:/etc/newman" postman/newman:6-alpine \
+  run TripLedger.postman_collection.json --env-var baseUrl=http://app:8080
+
+# Windows, Git Bash (stops Git Bash from rewriting the paths)
+MSYS_NO_PATHCONV=1 docker run --rm --network tripledger_default -v "$(pwd -W)/docs/postman:/etc/newman" postman/newman:6-alpine \
+  run TripLedger.postman_collection.json --env-var baseUrl=http://app:8080
+```
+
 | Endpoint | Who | What it does |
 |---|---|---|
 | `POST /v1/trips/{tripId}/evidence` | OPERATOR, ADMIN | Upload pings, milestones, plan. Needs an `Idempotency-Key` header. Safe to retry; a trip can come in several parts |
@@ -104,6 +127,53 @@ Another company's trip is always **404**, never 403, so its existence is not rev
 | Grafana panels say "No data" | The app hasn't been scraped yet, or nothing happened yet | Wait 10 s, then upload a trip from the demo console |
 | The map in the console stays grey | The map tiles and Leaflet come from the internet | Everything else still works offline |
 
+## The case study examples, as tests
+
+| Example from the case study | Test | Result |
+|---|---|---|
+| 31 km logout trip, 22 min without GPS, two drops inside the gap; naive sum 18.4 km | `DistanceEngineTest.underpassTripComesOutAtAbout30Point6KmNot18Point4`, `underpassNeedsOnlyTwoRoutingCalls` | **30.61 km**, 2 routing calls, every segment labelled |
+| A burst of pings 9 km away for 4 s (8,000 km/h) | `TeleportFilterTest.caseStudyBurstOfNineKmInFourSecondsIsDroppedAndDistanceIsUnchanged`, `DistanceEngineTest.caseStudyTeleportBurstDoesNotChangeTheTotal` | Points dropped, distance unchanged |
+| Same input + same rule version = same km | `DistanceEngineTest.shufflingTheInputNeverChangesTheResult`, `RecomputeBillingIntegrationTest.recomputingTwiceGivesTheSameRunAndTheSameKm` | Identical to the millimetre |
+| Late pings after billing → signed delta, invoice untouched | `RecomputeBillingIntegrationTest.latePingsAfterBillingBecomeASignedAdjustmentAndNeverEditTheInvoice` | `+1.80` style line, invoice unchanged |
+| Provider fails halfway through | `BenchmarkTest.anOutageHalfwayIsFullyRecoveredWithIdenticalKm`, `RoutingWithEngineTest`, `RecomputeBillingIntegrationTest.degradedTripsComeBackAfterAnOutageEvenWhenNothingNewIsUploaded` | DEGRADED, then recovered to the exact healthy km |
+| Concurrency | `JobsIntegrationTest` (8 workers / 8 computes on one trip → one run) | No double counting |
+
+## Assumptions (the ones that matter most)
+
+All 50+ are in [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md). Five of them (no-show flag, accuracy, speed limit, office radius, max route) can be changed per company with `PUT /v1/tenant/config`.
+
+- **Bad fix:** accuracy worse than **50 m** is dropped; **teleport** = implied speed above **120 km/h**.
+- **Short gap** < **70 s**; **parked** < **5 km/h**; a **move within GPS accuracy (50 m)** is never judged as speeding (rule set `v2`).
+- **Rejected pieces** pay the plain straight line and are flagged for review: never over-pay on bad data.
+- **Units:** integer millimetres, `StrictMath` haversine, rounded **once** at the trip total (HALF_EVEN, 10 m).
+- **Logout trips** anchor the office at the start, login trips at the end. Only employees with a pickup or drop milestone get an anchor.
+- **Billing** freezes a run on one invoice; later changes become signed adjustments, created only from properly COMPUTED runs.
+- **Batching** of routing requests was deliberately not built: only ~2 gaps per trip need a road (A27).
+
+## Trade-offs (short note)
+
+Full table in [DESIGN §12](docs/DESIGN.md#12-trade-offs-and-what-was-left-out).
+
+- **Availability over exactness when the map service is down.** Trips keep billing on a provisional straight line × 1.4 marked `DEGRADED`, and recovery restores the exact km (signed adjustment if already billed). The benchmark shows 10,000 / 10,000 trips back to identical km.
+- **Strong consistency for money.** A run and its adjustment are written in one transaction; unique indexes make double counting impossible. That costs some write throughput.
+- **Latency for clients, extra work for the server.** Every upload recomputes the trip straight away, so the response has the km. The load test shows the cost (upload p99 977 ms); recomputing once a trip goes quiet is the known next step.
+- **Cheap and stable over perfectly precise roads.** Snapping gap ends to 22 m cells gives a 66.7 % cache hit rate and answers that never drift, at a cost of ≤ ~31 m per routed gap. Roads a bill used are pinned, so a map update never moves an old bill.
+- **Simplicity over extra machinery:** the job queue lives in PostgreSQL (`SKIP LOCKED`), not Kafka; tenant isolation is in the app, not also in row-level security.
+
+**Left out on purpose:** request batching · Redis second-level cache · row-level security · rate limiter for a real provider · alert rules · HMM map-matching · live distance during the trip · GPS-spoofing detection · tolls and waiting charges · production SSO.
+
+### Caching: what can be stale
+
+| Data | Stale for at most | Bounded by |
+|---|---|---|
+| Road distance between two cells (Caffeine, max 100,000, W-TinyLFU) | 7 days after a map change | TTL 7 d; failures never cached; restart empties it |
+| Roads a billed run used (`run_route`) | Never refreshed, on purpose | A bill must not move because a map changed |
+| A `DEGRADED` (× 1.4) answer | Breaker wait 30 s + one scan ≤ 60 s after the provider is back | Labelled `DEGRADED`; signed adjustment if billed meanwhile |
+| A trip's km right after an upload | Normally 0 (computed inline), at most one worker poll (2 s) | The API says `RECEIVED` instead of showing old km |
+| Tenant settings | Never (read on every computation) | Each run records the settings version used |
+
+Details: [DESIGN §7](docs/DESIGN.md#7-routing-cost-and-caching).
+
 ## Project layout
 
 ```
@@ -111,7 +181,7 @@ core/   plain Java: the distance engine (no Spring, no database)
 app/    Spring Boot: REST API, JWT security + tenants, PostgreSQL (Flyway + Spring JDBC), routing layer, job queue + billing
 monitoring/  Prometheus scrape config, Grafana data source + "TripLedger" dashboard (provisioned, nothing to click)
 bench/  10,000-trip engine benchmark with a mid-run outage (plain Java, uses core + app as libraries) and the k6 load test script
-docs/   requirements tracker, assumptions, stack choice, roadmap, design note
+docs/   requirements tracker, assumptions, stack choice, roadmap, design note, Postman demo collection
 Dockerfile   two-stage build: Maven + JDK 21 builds the jar, a slim JRE 21 image runs it as a non-root user
 ```
 
@@ -170,6 +240,7 @@ docker run --rm -i --network tripledger_default grafana/k6:0.54.0 run -e BASE_UR
 - [Assumptions](docs/ASSUMPTIONS.md) — decisions where the PDF is open
 - [Technology choice](docs/STACK.md) — why Java 21 + Spring Boot
 - [Benchmark and load test results](bench/results.md) — numbers, machine, the two bugs they found
+- [Postman collection](docs/postman/TripLedger.postman_collection.json) — the whole demo as 24 self-checking requests
 - [Roadmap](docs/ROADMAP.md) — the 11 build segments
 
 ### Metrics
@@ -193,9 +264,3 @@ Scraped from `/actuator/prometheus` (open, like `/actuator/health`; it holds cou
 | `http_server_requests_seconds` | API rate, latency and error rate (Spring's own) |
 
 Inside Docker the logs are JSON (Elastic Common Schema), one line per event, with `traceId`, `tenantId` and `tripId` fields.
-
-## Sections still to come
-
-- API reference and sample calls (S10)
-- Trade-offs and what was left out (S10)
-- Demo video (S10)
