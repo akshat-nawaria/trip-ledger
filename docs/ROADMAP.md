@@ -12,6 +12,6 @@
 | S7 | Recompute, jobs & signed adjustments | 4, 5 | Done |
 | S8 | Monitoring & demo UI | 4, 8 | Done |
 | S9 | Benchmark & load test | 5, 6 | Done |
-| S10 | Docs, submission & demo video | 6, 7, 8 | Done (video link added after recording) |
+| S10 | Docs & submission | 6, 7 | Done |
 
 Each segment is done when its tests pass, the README or design note is updated, and CI is green.

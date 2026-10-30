@@ -53,4 +53,3 @@ Legend: **S0–S10** = build segments (see `docs/ROADMAP.md`).
 | ID | Requirement | Segment | Proof | Done |
 |----|-------------|---------|-------|------|
 | I01 | Public GitHub repo with meaningful commit history | S0, S10 | Commit log | [x] One commit per logical change, segment by segment (40+ commits), CI on every push |
-| I02 | Demo video: main flows, one live failure, sample API calls | S10 | Link in README | [~] Demo console (S8) + Postman collection with a live outage (S10) ready; link goes in the README once recorded |
