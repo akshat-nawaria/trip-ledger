@@ -32,7 +32,7 @@ The first build takes a few minutes (Maven downloads everything inside the conta
 
 | What | Where |
 |---|---|
-| Demo console: upload the underpass trip, see every segment on a map, bill it, send late pings, switch the map service off and on | http://localhost:8080 |
+| Demo console: sign in as admin, operator or employee; upload a sample trip (or one with a bad GPS fix), see every segment on a map, bill it, send late pings, take the map service offline and recover the DEGRADED trips, change billing settings | http://localhost:8080 |
 | API docs (Swagger UI) | http://localhost:8080/swagger-ui.html |
 | Grafana dashboard "TripLedger" (no login needed) | http://localhost:3000 |
 | Prometheus | http://localhost:9090 |
@@ -124,6 +124,7 @@ Another company's trip is always **404**, never 403, so its existence is not rev
 | `401 UNAUTHORIZED` | Missing, expired or foreign token | Get a fresh one from `POST /v1/dev/tokens` |
 | Grafana panels say "No data" | The app hasn't been scraped yet, or nothing happened yet | Wait 10 s, then upload a trip from the demo console |
 | The map in the console stays grey | The map tiles and Leaflet come from the internet | Everything else still works offline |
+| The console still looks like an older version | The browser cached the old page | Press Ctrl + F5 |
 
 ## The case study examples, as tests
 
@@ -183,12 +184,12 @@ docs/   requirements tracker, assumptions, stack choice, roadmap, design note, P
 Dockerfile   two-stage build: Maven + JDK 21 builds the jar, a slim JRE 21 image runs it as a non-root user
 ```
 
-## What works so far
+## What's built
 
 | Area | Classes | Proven by |
 |---|---|---|
 | Benchmark + load test | `TripFactory` (realistic synthetic trips, fixed seed), `Benchmark` (two runs + recovery, report), `bench/k6/load.js` | `TripFactoryTest`, `BenchmarkTest` (400-trip outage run in CI: everything recovered, identical km); results in [bench/results.md](bench/results.md) |
-| Monitoring + demo | `TripLedgerMetrics` (counters + compute timer), `GaugesConfig` (breaker, cache, queue depth, compute lag), `AdminController`, ECS JSON logs in Docker, `static/index.html` console, Grafana dashboard (15 panels) | `MetricsIntegrationTest` (scrape has our metrics, no tenant or trip ids in them, console served), `AdminIntegrationTest` (status, live outage switch → DEGRADED, operators get 403) |
+| Monitoring + demo | `TripLedgerMetrics` (counters + compute timer), `GaugesConfig` (breaker, cache, queue depth, compute lag), `AdminController`, ECS JSON logs in Docker, `static/index.html` console (trips, trip detail, system and settings screens; what you see depends on your role), Grafana dashboard (15 panels) | `MetricsIntegrationTest` (scrape has our metrics, no tenant or trip ids in them, console served), `AdminIntegrationTest` (status, live outage switch → DEGRADED, operators get 403) |
 | Exact distances | `GeoPoint` (micro-degrees), `Distance` (integer mm), `Haversine` (StrictMath) | `GeoPointTest`, `DistanceTest`, `HaversineTest` |
 | One place for every threshold | `BillingRules` (case-study defaults + builder) | `BillingRulesTest` |
 | Anchor points | `EmployeeAnchorResolver` (actual → profile home → planned), `NoShowAnchorResolver` (behind a flag), `OfficeAnchorResolver` (400 m rule) | One test class per resolver |
