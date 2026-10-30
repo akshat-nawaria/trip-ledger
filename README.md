@@ -32,7 +32,7 @@ The first build takes a few minutes (Maven downloads everything inside the conta
 
 | What | Where |
 |---|---|
-| Demo console: sign in as admin, operator or employee; upload a sample trip (or one with a bad GPS fix), see every segment on a map, bill it, send late pings, take the map service offline and recover the DEGRADED trips, change billing settings | http://localhost:8080 |
+| Demo console: sign in as admin, operator or employee; a scenario lab with 13 one-problem trips (GPS gap, missing drop location, too-long route, parked cab, teleport, weak signal, messy uploads, junk pings, map service down, billing during an outage, late pings after billing, everything at once), each with automatic checks; every segment on a map, billing and signed adjustments, system status and company settings | http://localhost:8080 |
 | API docs (Swagger UI) | http://localhost:8080/swagger-ui.html |
 | Grafana dashboard "TripLedger" (no login needed) | http://localhost:3000 |
 | Prometheus | http://localhost:9090 |
