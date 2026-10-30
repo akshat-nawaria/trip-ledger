@@ -9,8 +9,6 @@ MoveInSync Backend Case Study 2026 · Case Study 1 · Advanced Track.
 Rebuilds a trustworthy, explainable billable distance for every cab trip from unreliable GPS data.
 Every kilometre carries the rule that produced it, the same input always gives the same answer, and paid routing calls are kept to a minimum.
 
-**🎥 Demo video:** _link to be added_ — main flows, a live map-service outage, and sample API calls.
-
 | What the case study asks | Where it is |
 |---|---|
 | Run it with one command | `docker compose up --build` → console at http://localhost:8080, Grafana at :3000 ([Quick start](#quick-start)) |
