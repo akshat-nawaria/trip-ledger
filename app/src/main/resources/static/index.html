@@ -3,216 +3,687 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TripLedger Console</title>
+<title>TripLedger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <style>
-  /* TripLedger demo console. Colours follow the MoveInSync-style mockup: green brand, quiet greys. */
+  /* same green palette as before, just laid out as proper screens now */
   :root {
-    --brand: #43B02A; --brand-dark: #1F5C14; --brand-soft: #EAF6E6;
-    --ink: #171717; --ink-2: #3F4A45; --muted: #5F6B66; --line: #E6EAE8; --bg: #F1F3F2; --card: #FFFFFF;
-    --amber: #B7791F; --amber-soft: #FFF4E0; --red: #C53030; --red-soft: #FDECEC; --blue: #2B6CB0; --blue-soft: #EBF4FF;
-    --radius: 10px;
+    --bg: #F1F3F2; --card: #FFFFFF; --line: #E6EAE8; --line-soft: #EEF1EF;
+    --text: #171717; --muted: #5F6B66; --faint: #8A9590;
+    --green: #43B02A; --green-hover: #3CA025; --green-dark: #1F5C14; --green-soft: #EAF6E6;
+    --amber: #B7791F; --amber-soft: #FFF4E0;
+    --red: #C53030; --red-soft: #FDECEC;
+    --blue: #2B6CB0; --blue-soft: #EBF8FF;
+    --gray-soft: #F0F2F1;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow: 0 1px 2px rgba(0,0,0,.04);
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  header { background: var(--card); border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 1000; }
-  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
-  .logo-mark { width: 26px; height: 26px; border-radius: 7px; background: var(--brand); display: grid; place-items: center; color: #fff; font-size: 13px; }
-  .logo small { font-weight: 500; color: var(--muted); margin-left: 4px; }
-  .spacer { flex: 1; }
-  .who { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
-  .who input { width: 110px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
-  main { display: grid; grid-template-columns: 320px 1fr; gap: 16px; padding: 16px 20px 32px; max-width: 1480px; margin: 0 auto; }
-  @media (max-width: 960px) { main { grid-template-columns: 1fr; padding: 12px 16px; } header { flex-wrap: wrap; } }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
-  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
-  .stack { display: flex; flex-direction: column; gap: 16px; }
-  .step { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); }
-  .step:first-of-type { border-top: 0; padding-top: 0; }
-  .step-n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-dark); font-weight: 700; font-size: 12px; display: grid; place-items: center; }
-  .step p { margin: 2px 0 8px; color: var(--muted); font-size: 12.5px; }
-  .step b { font-weight: 600; }
-  button { font: inherit; border-radius: 7px; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 7px 12px; cursor: pointer; font-weight: 600; font-size: 13px; }
-  button:hover:not(:disabled) { border-color: #C9D1CD; }
-  button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-  button.primary:hover:not(:disabled) { background: #3A9C24; }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .kv { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
-  .kv:first-of-type { border-top: 0; }
-  .kv span:first-child { color: var(--muted); }
-  .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #EEF1EF; color: var(--ink-2); }
-  .pill.ok { background: var(--brand-soft); color: var(--brand-dark); }
+  html, body { margin: 0; }
+  body { font-family: var(--sans); font-size: 14px; line-height: 1.5; color: var(--text); background: var(--bg);
+    -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; min-height: 100vh; }
+  a { color: inherit; }
+  button { font: inherit; cursor: pointer; }
+  button:disabled { cursor: not-allowed; opacity: .5; }
+  input { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  .mono { font-family: var(--mono); }
+  .muted { color: var(--muted); }
+
+  /* ---------- top bar ---------- */
+  .topbar { position: sticky; top: 0; z-index: 1100; background: #fff; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 28px; padding: 0 32px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; text-decoration: none; letter-spacing: -.01em; }
+  .brand .logo { width: 32px; height: 32px; border-radius: 8px; background: var(--green); color: #fff; display: grid; place-items: center; font-size: 13px; letter-spacing: 0; }
+  .tabs { display: flex; gap: 4px; }
+  .tabs a { text-decoration: none; color: var(--muted); font-weight: 500; font-size: 15px; padding: 8px 16px; border-radius: var(--radius-sm); }
+  .tabs a:hover { color: var(--text); background: var(--gray-soft); }
+  .tabs a.active { color: var(--text); background: var(--gray-soft); font-weight: 600; }
+  .top-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .who { border: 1px solid var(--line); background: var(--gray-soft); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+  .who.tenant { font-family: var(--mono); font-size: 12px; }
+  .who.role { background: var(--green-soft); border-color: #CDE8C4; color: var(--green-dark); font-weight: 500; }
+  .who:hover { border-color: var(--green); }
+  .ext { text-decoration: none; color: var(--muted); font-size: 14px; }
+  .ext:hover { color: var(--text); }
+
+  /* ---------- page + cards ---------- */
+  .page { max-width: 1640px; margin: 0 auto; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .pad { padding: 24px; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .card-head h2, .card h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .card-head .sub { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+  .stat { padding: 22px 24px; display: flex; flex-direction: column; gap: 6px; min-height: 150px; }
+  .stat .label { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; font-weight: 500;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .stat .value { font-size: 32px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+  .stat .value small { font-size: 20px; font-weight: 600; margin-left: 4px; }
+  .stat .note { color: var(--muted); font-size: 13.5px; margin-top: auto; }
+  .stat .value.green { color: var(--green-dark); }
+  .stat .value.amber, .stat .label.amber { color: var(--amber); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--green); margin-right: 8px; vertical-align: middle; }
+  .dot.off { background: var(--red); }
+
+  /* ---------- pills, chips, buttons ---------- */
+  .pill { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: .03em; padding: 3px 10px; border-radius: 999px;
+    background: var(--gray-soft); color: var(--muted); white-space: nowrap; text-transform: uppercase; }
+  .pill.ok { background: var(--green-soft); color: var(--green-dark); }
   .pill.warn { background: var(--amber-soft); color: var(--amber); }
   .pill.bad { background: var(--red-soft); color: var(--red); }
-  .switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .toggle { position: relative; width: 44px; height: 24px; border-radius: 999px; background: var(--brand); border: 0; padding: 0; }
-  .toggle::after { content: ""; position: absolute; top: 3px; left: 23px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; }
-  .toggle.off { background: #C9D1CD; }
-  .toggle.off::after { left: 3px; }
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
-  .kpi .label { color: var(--muted); font-size: 12.5px; }
-  .kpi .value { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .kpi .value small { font-size: 14px; font-weight: 600; color: var(--muted); margin-left: 3px; }
-  .kpi .note { color: var(--muted); font-size: 12px; margin-top: 2px; }
-  .kpi.hero .value { color: var(--brand-dark); }
-  .trip-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-  .trip-head h1 { font-size: 17px; margin: 0; }
-  .trip-head .meta { color: var(--muted); font-size: 12.5px; }
-  #map { height: 420px; border-radius: 8px; border: 1px solid var(--line); background: #E9EEEB; }
-  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--muted); }
-  .legend i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
-  .grid2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
-  @media (max-width: 1100px) { .grid2 { grid-template-columns: 1fr; } }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
-  td { padding: 7px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
-  td.num, th.num { text-align: right; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-  .chip { font-size: 12px; padding: 3px 8px; border-radius: 6px; background: #F0F2F1; color: var(--ink-2); }
-  .chip b { font-weight: 700; }
-  .empty { color: var(--muted); font-size: 13px; padding: 18px 0; text-align: center; }
-  .delta-pos { color: var(--brand-dark); font-weight: 700; }
-  .delta-neg { color: var(--red); font-weight: 700; }
-  .trips-list button { width: 100%; text-align: left; display: flex; justify-content: space-between; margin-top: 6px; font-weight: 500; }
-  .toast { position: fixed; right: 20px; bottom: 20px; max-width: 380px; background: var(--ink); color: #fff; padding: 12px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.18); opacity: 0; transform: translateY(8px); transition: all .2s; pointer-events: none; z-index: 2000; }
+  .pill.info { background: var(--blue-soft); color: var(--blue); }
+  .chip { font-family: var(--mono); font-size: 12.5px; background: var(--gray-soft); border: 1px solid var(--line-soft); border-radius: 6px; padding: 3px 8px; white-space: nowrap; }
+  .rule { font-family: var(--mono); font-size: 11.5px; font-weight: 500; padding: 2px 7px; border-radius: 5px; background: var(--gray-soft); color: var(--muted); white-space: nowrap; }
+  .rule.ROUTED { background: var(--green-soft); color: var(--green-dark); }
+  .rule.DEGRADED_AERIAL { background: var(--amber-soft); color: var(--amber); }
+  .rule.PARKED { background: var(--blue-soft); color: var(--blue); }
+  .rule.REJECTED_SPEED, .rule.REJECTED_DISTANCE { background: var(--red-soft); color: var(--red); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--radius-sm); padding: 10px 18px;
+    font-weight: 500; font-size: 14px; border: 1px solid var(--line); background: #fff; color: var(--text); white-space: nowrap; text-decoration: none; }
+  .btn:hover:not(:disabled) { border-color: #CBD3CF; background: #FAFBFA; }
+  .btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+  .btn.primary:hover:not(:disabled) { background: var(--green-hover); border-color: var(--green-hover); }
+  .btn.danger { color: var(--red); border-color: var(--red); }
+  .btn.danger:hover:not(:disabled) { background: var(--red-soft); }
+  .btn.small { padding: 6px 14px; font-size: 13.5px; }
+  .btn svg { width: 16px; height: 16px; flex: none; }
+  .btn.busy { position: relative; color: transparent !important; }
+  .btn.busy::after { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor;
+    border-color: var(--green) transparent var(--green) transparent; animation: spin .8s linear infinite; }
+  .btn.primary.busy::after { border-color: #fff transparent #fff transparent; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .input { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 9px 12px; background: #fff; min-width: 0; }
+  .input:focus { outline: 2px solid #BFE3B4; border-color: var(--green); }
+
+  /* ---------- tables ---------- */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+    background: #FAFBFA; padding: 12px 24px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 14px 24px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  .num { text-align: right; }
+  tbody tr.link { cursor: pointer; }
+  tbody tr.link:hover td { background: #F8FAF8; }
+  td.km { font-weight: 600; }
+  .empty { padding: 36px 24px; text-align: center; color: var(--muted); }
+  .table-foot { padding: 12px 24px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line-soft); }
+
+  /* ---------- trips screen ---------- */
+  .demo-card { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 24px; flex-wrap: wrap; }
+  .demo-card p { margin: 4px 0 0; color: var(--muted); }
+  .demo-card .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .filters { display: flex; gap: 4px; flex-wrap: wrap; }
+  .filters button { border: 0; background: none; color: var(--muted); font-weight: 500; padding: 7px 14px; border-radius: var(--radius-sm); }
+  .filters button:hover { color: var(--text); }
+  .filters button.active { background: var(--gray-soft); color: var(--text); font-weight: 600; }
+  .search { width: 280px; }
+  .inline-form { display: flex; gap: 10px; flex-wrap: wrap; }
+  .inline-form .input { flex: 1 1 220px; }
+
+  /* ---------- trip detail ---------- */
+  .trip-head { display: flex; align-items: center; gap: 16px; padding: 18px 24px; flex-wrap: wrap; }
+  .back { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; padding-right: 16px; border-right: 1px solid var(--line); }
+  .back:hover { color: var(--text); }
+  .trip-head .meta { color: var(--muted); }
+  .trip-head .actions { margin-left: auto; display: flex; gap: 12px; }
+  .detail-main { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 24px; align-items: start; }
+  .map-card { display: flex; flex-direction: column; overflow: hidden; }
+  .map-card .card-head .chips { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 13px; }
+  #map { height: 620px; background: #EEF1EF; }
+  .map-empty { height: 100%; display: grid; place-items: center; color: var(--muted); padding: 24px; text-align: center; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; padding: 16px 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend i { display: inline-block; width: 22px; height: 0; border-top: 3px solid; }
+  .legend i.dash { border-top-style: dashed; border-top-width: 3px; }
+  .legend i.round { width: 10px; height: 10px; border: 0; border-radius: 50%; }
+  .side { display: flex; flex-direction: column; gap: 24px; }
+  .side .card { padding: 22px 24px; }
+  .side-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+  .side-head .muted { font-size: 13px; }
+  .rule-summary { font-weight: 600; margin-bottom: 14px; font-size: 14px; }
+  .rule-summary .g { color: var(--green-dark); }
+  .rule-summary .a { color: var(--amber); }
+  .rule-summary .r { color: var(--red); }
+  .seg-list { display: flex; flex-direction: column; gap: 10px; max-height: 440px; overflow-y: auto; }
+  .seg { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #FCFDFC; }
+  .seg .top { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13.5px; }
+  .seg .when { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .seg .look { color: var(--red); font-size: 12px; font-weight: 500; }
+  .seg .km { font-weight: 700; white-space: nowrap; }
+  .seg.hops { border-style: dashed; background: #fff; }
+  .seg.hops .lbl { color: var(--muted); }
+  .rows { margin-top: 6px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+  .row:last-child { border-bottom: 0; }
+  .row .k { color: var(--muted); }
+  .row .v { font-family: var(--mono); font-size: 12px; background: var(--gray-soft); border-radius: 5px; padding: 2px 8px; white-space: nowrap; }
+  .row .v.hit { background: var(--amber-soft); color: var(--amber); }
+  .big-line { font-weight: 600; font-size: 15px; }
+  .sub-title { margin: 18px 0 2px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+
+  /* ---------- invoice ---------- */
+  .inv-top { display: flex; align-items: center; gap: 28px; padding: 24px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .inv-id { display: flex; align-items: center; gap: 12px; }
+  .inv-id .label, .inv-sum .label { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .inv-id .chip { font-size: 14px; padding: 6px 12px; }
+  .inv-sum { display: flex; align-items: flex-end; gap: 20px; margin: 0 auto; flex-wrap: wrap; }
+  .inv-sum .v { font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+  .inv-sum .op { color: var(--faint); font-size: 18px; padding-bottom: 4px; }
+  .inv-sum .v.pos { color: var(--green-dark); }
+  .inv-sum .v.neg { color: var(--red); }
+  .inv-sum .v.total { color: var(--green-dark); }
+  .delta-pos { color: var(--green-dark); font-weight: 600; }
+  .delta-neg { color: var(--red); font-weight: 600; }
+  .inv-foot { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13.5px; flex-wrap: wrap; }
+  .inv-empty { padding: 28px 24px; display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .inv-empty p { margin: 4px 0 0; color: var(--muted); max-width: 640px; }
+
+  /* ---------- system ---------- */
+  .sys .stat { min-height: 210px; }
+  .sys .row-2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .triple .value { font-size: 28px; }
+  .triple .cap, .pair .cap { color: var(--muted); font-size: 13px; }
+  .pair { display: flex; gap: 40px; }
+  .count { display: inline-grid; place-items: center; min-width: 24px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); font-size: 12.5px; font-weight: 600; margin-left: 8px; vertical-align: 2px; }
+  .ext-link { display: inline-flex; gap: 8px; align-items: center; font-weight: 600; font-size: 17px; text-decoration: none; }
+  .ext-link:hover { color: var(--green-dark); }
+
+  /* ---------- settings ---------- */
+  .set-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; }
+  .field { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 20px 24px; border-bottom: 1px solid var(--line-soft); }
+  .field:last-of-type { border-bottom: 0; }
+  .field .t { font-weight: 600; }
+  .field .d { color: var(--muted); font-size: 13.5px; margin-top: 2px; max-width: 620px; }
+  .unit { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+  .unit .input { width: 110px; text-align: right; }
+  .unit span { width: 34px; }
+  .switch { position: relative; width: 44px; height: 24px; border-radius: 999px; border: 0; background: #CBD3CF; flex: none; transition: background .15s; }
+  .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: left .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  .switch.on { background: var(--green); }
+  .switch.on::after { left: 23px; }
+  .set-foot { display: flex; justify-content: flex-end; gap: 12px; padding: 18px 24px; border-top: 1px solid var(--line); background: #FAFBFA; border-radius: 0 0 var(--radius) var(--radius); }
+  .note-card { padding: 22px 24px; }
+  .note-card h3 { margin: 0 0 8px; font-size: 14px; }
+  .note-card p { margin: 0 0 10px; color: var(--muted); font-size: 13.5px; }
+  .note-card p:last-child { margin: 0; }
+
+  /* ---------- employee ---------- */
+  .narrow { max-width: 760px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+  .result { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+  .result .head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .result .value { font-size: 40px; font-weight: 700; letter-spacing: -.02em; color: var(--green-dark); }
+  .result .value small { font-size: 22px; margin-left: 4px; }
+
+  /* ---------- modal + toast ---------- */
+  .overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(23,23,23,.45); backdrop-filter: blur(3px); display: grid; place-items: center; padding: 16px; }
+  .modal { width: 100%; max-width: 520px; background: #fff; border-radius: 16px; padding: 36px; box-shadow: 0 20px 50px rgba(0,0,0,.18); }
+  .modal h2 { margin: 0; font-size: 22px; }
+  .modal .sub { margin: 6px 0 24px; color: var(--muted); }
+  .modal label { display: block; font-weight: 500; margin: 18px 0 8px; }
+  .modal .input { width: 100%; padding: 12px 14px; font-size: 15px; }
+  .seg-ctl { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--gray-soft); border-radius: 10px; padding: 4px; gap: 4px; }
+  .seg-ctl button { border: 0; background: none; padding: 9px 6px; border-radius: 7px; color: var(--muted); font-weight: 500; }
+  .seg-ctl button.active { background: #fff; color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .role-hint { margin: 10px 0 0; color: var(--muted); font-size: 13px; min-height: 20px; }
+  .modal .btn.primary { width: 100%; margin-top: 26px; padding: 13px; font-size: 15px; }
+  .modal .foot { text-align: center; color: var(--muted); font-size: 13px; margin: 16px 0 0; }
+  .modal .err { color: var(--red); font-size: 13px; margin: 12px 0 0; }
+  .toast { position: fixed; right: 24px; bottom: 24px; z-index: 3000; max-width: 440px; background: var(--text); color: #fff; padding: 12px 16px;
+    border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.2); font-size: 13.5px; opacity: 0; transform: translateY(8px); transition: all .2s; pointer-events: none; }
   .toast.show { opacity: 1; transform: none; }
   .toast.err { background: var(--red); }
-  .toast code { opacity: .8; font-size: 11.5px; }
-  .muted { color: var(--muted); }
-  a { color: var(--brand-dark); }
+  .toast code { font-family: var(--mono); font-size: 12px; opacity: .85; }
+  .leaflet-tooltip { font-family: var(--sans); font-size: 12.5px; }
+
+  /* ---------- smaller screens ---------- */
+  @media (max-width: 1250px) {
+    .detail-main { grid-template-columns: 1fr; }
+    .side { display: grid; grid-template-columns: 1fr 1fr; }
+    #map { height: 480px; }
+    .set-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 1050px) {
+    .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ext { display: none; }
+  }
+  @media (max-width: 760px) {
+    .topbar { padding: 0 16px; gap: 12px; height: auto; min-height: 56px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+    .brand span:last-child { display: none; }
+    .tabs { order: 3; width: 100%; overflow-x: auto; }
+    .tabs a { padding: 6px 12px; font-size: 14px; }
+    .page { padding: 16px; gap: 16px; }
+    .grid-4, .grid-3, .side { grid-template-columns: 1fr; gap: 16px; }
+    .stat { min-height: 0; }
+    .sys .stat { min-height: 0; }
+    th, td { padding: 11px 12px; }
+    th { font-size: 11px; }
+    td .chip { font-size: 11.5px; padding: 2px 6px; }
+    #view-trips .grid-4 { grid-template-columns: 1fr 1fr; gap: 12px; }
+    #view-trips .stat { padding: 16px; }
+    #view-trips .stat .value { font-size: 26px; }
+    #view-trips .stat .note { font-size: 12.5px; }
+    .hide-sm { display: none; }
+    .search { width: 100%; }
+    .card-head, .demo-card, .trip-head, .inv-top, .side .card, .pad, .field { padding-left: 16px; padding-right: 16px; }
+    .demo-card .actions, .demo-card .actions .btn { width: 100%; }
+    .trip-head .actions { margin-left: 0; width: 100%; }
+    .trip-head .actions .btn { flex: 1; }
+    .back { border-right: 0; padding-right: 0; width: 100%; }
+    #map { height: 360px; }
+    .inv-sum { margin: 0; gap: 12px; }
+    .inv-sum .v { font-size: 20px; }
+    .field { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .modal { padding: 24px; }
+    .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <div class="logo"><div class="logo-mark">TL</div>TripLedger <small>billable distance console</small></div>
-  <div class="spacer"></div>
-  <div class="who">Company <input id="tenant" value="acme" aria-label="Tenant id"> <span id="auth" class="pill">signing in...</span></div>
-  <a href="/swagger-ui.html" target="_blank" rel="noopener">API docs</a>
-  <a href="http://localhost:3000" target="_blank" rel="noopener">Grafana</a>
+
+<header class="topbar">
+  <a class="brand" href="#/trips"><span class="logo">TL</span><span>TripLedger</span></a>
+  <nav class="tabs" id="tabs">
+    <a href="#/trips" data-tab="trips">Trips</a>
+    <a href="#/system" data-tab="system" class="admin-only">System</a>
+    <a href="#/settings" data-tab="settings" class="admin-only">Settings</a>
+  </nav>
+  <div class="top-right">
+    <button class="who tenant" id="who-tenant" title="Switch company or role">-</button>
+    <button class="who role" id="who-role" title="Switch company or role">Not signed in</button>
+    <a class="ext" href="/swagger-ui.html" target="_blank" rel="noopener">API docs</a>
+    <a class="ext grafana-link" href="http://localhost:3000" target="_blank" rel="noopener">Grafana</a>
+  </div>
 </header>
 
-<main>
-  <aside class="stack">
-    <section class="card">
-      <h2>Demo script</h2>
-      <div class="step"><div class="step-n">1</div><div>
-        <b>Upload the underpass trip</b>
-        <p>9 km of pings, then 22 min of no GPS while the cab drops an employee, then 7 km more.</p>
-        <button class="primary" id="btn-upload">Upload trip</button>
-      </div></div>
-      <div class="step"><div class="step-n">2</div><div>
-        <b>Bill it</b>
-        <p>Freezes today's km on an invoice. Nothing will ever edit that invoice.</p>
-        <button id="btn-bill" disabled>Put on invoice</button>
-      </div></div>
-      <div class="step"><div class="step-n">3</div><div>
-        <b>Late pings arrive</b>
-        <p>The phone was offline at the end of the trip and sends 1.5 km more after billing.</p>
-        <button id="btn-late" disabled>Send late pings</button>
-      </div></div>
-      <div class="step"><div class="step-n">4</div><div>
-        <b>Break the map service</b>
-        <p>Switch it off below, then upload a new trip: it comes out DEGRADED (straight line × 1.4). Switch it back on and recompute.</p>
-        <button id="btn-recompute" disabled>Recompute this trip</button>
-      </div></div>
-    </section>
+<main class="page">
 
-    <section class="card">
-      <h2>System</h2>
-      <div class="switch kv"><span>Map service (mock)</span><button class="toggle" id="btn-provider" aria-label="Switch map service"></button></div>
-      <div class="kv"><span>Circuit breaker</span><span id="s-breaker" class="pill">-</span></div>
-      <div class="kv"><span>Cached routes</span><span id="s-cache">-</span></div>
-      <div class="kv"><span>Jobs waiting / running</span><span id="s-queue">-</span></div>
-      <div class="kv"><span>Compute lag</span><span id="s-lag">-</span></div>
-    </section>
-
-    <section class="card">
-      <h2>Recent trips</h2>
-      <div id="trips" class="trips-list"><div class="empty">No trips yet</div></div>
-    </section>
-  </aside>
-
-  <section class="stack">
-    <div class="kpis">
-      <div class="card kpi hero"><div class="label">Billable distance</div><div class="value" id="k-km">-</div><div class="note" id="k-km-note">rounded once, to 10 m</div></div>
-      <div class="card kpi"><div class="label">Naive "join the pings"</div><div class="value" id="k-naive">-</div><div class="note">what a simple sum would have paid</div></div>
-      <div class="card kpi"><div class="label">Paid routing calls</div><div class="value" id="k-calls">-</div><div class="note" id="k-calls-note">-</div></div>
-      <div class="card kpi"><div class="label">Status</div><div class="value" style="font-size:20px;margin-top:10px"><span id="k-status" class="pill">no trip</span></div><div class="note" id="k-status-note">&nbsp;</div></div>
-    </div>
-
-    <section class="card">
-      <div class="trip-head"><h1 id="trip-title">No trip loaded</h1><span class="meta" id="trip-meta"></span></div>
-      <div id="map"></div>
-      <div class="legend">
-        <span><i style="background:#8FA69A"></i>GPS pings (straight line)</span>
-        <span><i style="background:#43B02A"></i>Routed gap (road distance)</span>
-        <span><i style="background:#B7791F"></i>Degraded (× 1.4 guess)</span>
-        <span><i style="background:#C53030"></i>Rejected</span>
-        <span><i style="background:#2B6CB0"></i>Parked</span>
+  <!-- ================= TRIPS (admin + operator) ================= -->
+  <section id="view-trips" hidden>
+    <div class="page" style="padding:0">
+      <div class="grid-4 admin-only">
+        <div class="card stat"><div class="label">Computed</div><div class="value" id="c-computed">-</div><div class="note">Trips with a final km</div></div>
+        <div class="card stat"><div class="label amber">Degraded</div><div class="value amber" id="c-degraded">-</div><div class="note">Some gaps guessed, waiting for the map service</div></div>
+        <div class="card stat"><div class="label">Received</div><div class="value" id="c-received">-</div><div class="note">Uploaded, still in the compute queue</div></div>
+        <div class="card stat"><div class="label">Map service <span id="c-breaker" class="pill">-</span></div>
+          <div class="value" style="font-size:24px" id="c-map">-</div><div class="note" id="c-map-note">-</div></div>
       </div>
-    </section>
 
-    <div class="grid2">
-      <section class="card">
-        <h2>Why this many km</h2>
-        <div class="chips" id="rule-chips"></div>
-        <table>
-          <thead><tr><th>#</th><th>From</th><th>To</th><th>Rule</th><th class="num">km</th></tr></thead>
-          <tbody id="segments"><tr><td colspan="5" class="empty">Upload a trip to see how every metre was measured</td></tr></tbody>
-        </table>
-        <p class="muted" id="seg-note" style="font-size:12px;margin:8px 0 0"></p>
-      </section>
-      <section class="card">
-        <h2>Invoice and adjustments</h2>
-        <div id="billing"><div class="empty">Not billed yet</div></div>
-      </section>
+      <div class="card demo-card">
+        <div>
+          <h2>Try it with a demo trip</h2>
+          <p>9 km of pings, then 22 minutes with no GPS while employee e-104 is dropped, then 7 km more. The bad-fix version also has two pings that jump 9 km away.</p>
+        </div>
+        <div class="actions">
+          <button class="btn" id="btn-badfix">Upload trip with bad GPS fix</button>
+          <button class="btn primary" id="btn-sample">Upload sample trip</button>
+        </div>
+      </div>
+
+      <!-- operators can't list trips (that's admin only), so they open one by ID instead -->
+      <div class="card operator-only">
+        <div class="card-head"><div><h2>Open a trip</h2><p class="sub">Listing every trip is for admins. As an operator you open a trip by its ID.</p></div></div>
+        <div class="pad"><form class="inline-form" id="open-form"><input class="input mono" id="open-id" placeholder="Trip ID, e.g. DEMO-MVURMQ2T" autocomplete="off"><button class="btn primary">Open</button></form></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="filters admin-only" id="filters"></div>
+          <h2 class="operator-only">Trips opened in this browser</h2>
+          <input class="input search admin-only" id="search" placeholder="Search by trip ID..." autocomplete="off">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Trip ID</th><th>Status</th><th class="hide-sm">Last updated</th><th class="num">Billable km</th><th class="num hide-sm">Paid routing calls</th></tr></thead>
+            <tbody id="trip-rows"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+          </table>
+        </div>
+        <div class="table-foot" id="trip-foot" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TRIP DETAIL ================= -->
+  <section id="view-detail" hidden>
+    <div class="page" style="padding:0">
+      <div class="card trip-head">
+        <a class="back" href="#/trips"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back to trips</a>
+        <span class="chip" id="d-id">-</span>
+        <span class="pill" id="d-status">-</span>
+        <span class="meta" id="d-meta"></span>
+        <div class="actions">
+          <button class="btn admin-only" id="d-recompute"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Recompute</button>
+          <button class="btn primary admin-only" id="d-bill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Bill this trip</button>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card stat"><div class="label">Billable distance</div><div class="value green" id="d-km">-</div><div class="note" id="d-km-note"></div></div>
+        <div class="card stat"><div class="label">Paid routing calls</div><div class="value" id="d-calls">-</div><div class="note" id="d-calls-note"></div></div>
+        <div class="card stat"><div class="label">Calculation status</div><div><span class="pill" id="d-status2">-</span></div><div class="note" id="d-status-note"></div></div>
+      </div>
+
+      <div class="detail-main">
+        <div class="card map-card">
+          <div class="card-head"><h2>Route on the map</h2><div class="chips"><span class="chip" id="d-rules">-</span><span id="d-segcount"></span></div></div>
+          <div id="map"></div>
+          <div class="legend">
+            <span><i style="border-color:#8FA69A"></i>Short hop between pings</span>
+            <span><i class="dash" style="border-color:#43B02A"></i>Routed gap (road km)</span>
+            <span><i class="dash" style="border-color:#B7791F"></i>Degraded (straight line × 1.4)</span>
+            <span><i class="dash" style="border-color:#C53030"></i>Rejected</span>
+            <span><i class="dash" style="border-color:#2B6CB0"></i>Parked</span>
+            <span><i class="round" style="background:#171717"></i>Office</span>
+            <span><i class="round" style="background:#1F5C14"></i>Employee stop</span>
+          </div>
+        </div>
+
+        <aside class="side">
+          <div class="card">
+            <div class="side-head"><h2>Why this many km</h2><span class="muted" id="d-segtotal"></span></div>
+            <div class="rule-summary" id="d-rulesum"></div>
+            <div class="seg-list" id="d-segs"></div>
+          </div>
+          <div class="card">
+            <div class="side-head"><h2>Cleaning</h2><span class="pill" id="d-clean-pill">-</span></div>
+            <div class="big-line" id="d-clean-line">-</div>
+            <div class="rows" id="d-clean"></div>
+            <div class="sub-title">Anchor points used</div>
+            <div class="rows" id="d-anchors"></div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="card" id="d-invoice"></div>
+    </div>
+  </section>
+
+  <!-- ================= SYSTEM (admin) ================= -->
+  <section id="view-system" hidden>
+    <div class="page sys" style="padding:0">
+      <div class="grid-4">
+        <div class="card stat">
+          <div class="label">Map service <span class="pill" id="s-breaker1">-</span></div>
+          <div class="row-2"><div style="font-weight:700;font-size:18px" id="s-online">-</div><button class="btn danger small" id="s-toggle">Take offline</button></div>
+          <div class="note" id="s-toggle-note">Offline: new gaps fall back to straight line × 1.4 and trips come out DEGRADED.</div>
+        </div>
+        <div class="card stat">
+          <div class="label">Routing <span class="pill" id="s-breaker2">-</span></div>
+          <div class="pair"><div><div class="value" id="s-cached">-</div><div class="cap">Cached routes</div></div><div><div class="value" id="s-ratio">-</div><div class="cap">Cache hit ratio</div></div></div>
+          <div class="note">The same gap twice costs one paid call. Cached road distances are kept for 7 days.</div>
+        </div>
+        <div class="card stat">
+          <div class="label">Compute queue <span class="pill" id="s-queue-pill">-</span></div>
+          <div class="triple"><div><div class="value" id="s-pending">-</div><div class="cap">Waiting</div></div><div><div class="value" id="s-running">-</div><div class="cap">Running</div></div><div><div class="value" id="s-failed">-</div><div class="cap">Failed (24 h)</div></div></div>
+          <div class="note">Oldest waiting job: <b id="s-lag">-</b></div>
+        </div>
+        <div class="card stat">
+          <div class="label">Observability</div>
+          <a class="ext-link grafana-link" href="http://localhost:3000" target="_blank" rel="noopener">Open the Grafana dashboard
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3M21 14v7H3V3h7"/></svg></a>
+          <a class="muted" href="/actuator/prometheus" target="_blank" rel="noopener" style="font-size:13.5px">Raw Prometheus metrics</a>
+          <div class="note">km computed, routing calls, breaker state and queue lag over time.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div><h2>DEGRADED trips, waiting for recovery<span class="count" id="s-dcount">0</span></h2>
+            <p class="sub">Computed while the map service was down, so some gaps are a guess. Once the service is back the recovery scan redoes them by itself. Or push it now.</p></div>
+          <button class="btn" id="s-recompute-all">Recompute all</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Trip ID</th><th>Status</th><th class="hide-sm">Last updated</th><th class="hide-sm">Guessed gaps</th><th class="num">Billable km</th><th class="num">Action</th></tr></thead>
+            <tbody id="s-rows"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SETTINGS (admin) ================= -->
+  <section id="view-settings" hidden>
+    <div class="set-grid">
+      <form class="card" id="set-form">
+        <div class="card-head">
+          <div><h2>Billing settings</h2><p class="sub">How your company's trips are cleaned and measured.</p></div>
+          <span class="pill ok" id="set-version">-</span>
+        </div>
+        <div class="field">
+          <div><div class="t">Pay the drive to a no-show's pickup point</div><div class="d">When an employee doesn't turn up, still pay for driving to where they should have been picked up.</div></div>
+          <button type="button" class="switch" id="f-noshow" role="switch" aria-checked="false" aria-label="Pay the drive to a no-show's pickup point"></button>
+        </div>
+        <div class="field">
+          <div><div class="t">Ignore GPS fixes less accurate than</div><div class="d">Pings whose reported accuracy is worse than this are dropped before anything is measured.</div></div>
+          <label class="unit"><input class="input" id="f-accuracy" type="number" min="1" step="1" required><span>m</span></label>
+        </div>
+        <div class="field">
+          <div><div class="t">Faster than this is a GPS glitch</div><div class="d">A ping that would need this speed to get there from the last one is treated as a teleport and dropped.</div></div>
+          <label class="unit"><input class="input" id="f-speed" type="number" min="1" step="any" required><span>km/h</span></label>
+        </div>
+        <div class="field">
+          <div><div class="t">Trust the real trip end within</div><div class="d">If the trip ends further than this from the office, the planned office is used as the end point instead.</div></div>
+          <label class="unit"><input class="input" id="f-radius" type="number" min="1" step="1" required><span>m</span></label>
+        </div>
+        <div class="field">
+          <div><div class="t">Reject a routed piece longer than</div><div class="d">A gap whose road route is longer than this is not trusted; it's paid as a straight line and flagged for a look.</div></div>
+          <label class="unit"><input class="input" id="f-maxroute" type="number" min="1" step="1" required><span>km</span></label>
+        </div>
+        <div class="set-foot">
+          <button type="button" class="btn" id="set-reset" disabled>Undo changes</button>
+          <button class="btn primary" id="set-save" disabled>Save as new version</button>
+        </div>
+      </form>
+      <div class="side" style="display:flex">
+        <div class="card note-card">
+          <h3>Nothing already billed changes</h3>
+          <p>Saving creates the next version; old versions are never edited. Each trip uses the new settings from its next calculation.</p>
+          <p>Every result says which settings version it used (look for "settings v..." on a trip).</p>
+        </div>
+        <div class="card note-card">
+          <h3>Version 0</h3>
+          <p>v0 is the case-study defaults: 50 m accuracy, 120 km/h, 400 m office radius, 100 km route limit, no-show drive not paid.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= EMPLOYEE ================= -->
+  <section id="view-employee" hidden>
+    <div class="narrow">
+      <div class="card">
+        <div class="card-head"><div><h2>Look up your trip</h2><p class="sub" id="emp-sub">Employees can see the km of trips they rode in, and nothing else.</p></div></div>
+        <div class="pad"><form class="inline-form" id="emp-form"><input class="input mono" id="emp-id" placeholder="Trip ID, e.g. DEMO-MVURMQ2T" autocomplete="off"><button class="btn primary">Look up</button></form></div>
+      </div>
+      <div class="card" id="emp-result" hidden></div>
     </div>
   </section>
 </main>
-<div class="toast" id="toast"></div>
+
+<!-- ================= SIGN-IN ================= -->
+<div class="overlay" id="signin" hidden>
+  <form class="modal" id="signin-form">
+    <h2>Demo sign-in</h2>
+    <p class="sub">Pick a company and a role. Each role sees what the API lets it see.</p>
+    <label for="si-tenant">Company</label>
+    <input class="input" id="si-tenant" value="acme" autocomplete="off" required>
+    <label>Role</label>
+    <div class="seg-ctl" id="si-roles">
+      <button type="button" data-role="admin" class="active">Admin+Operator</button>
+      <button type="button" data-role="operator">Operator</button>
+      <button type="button" data-role="employee">Employee</button>
+    </div>
+    <p class="role-hint" id="si-hint"></p>
+    <div id="si-emp-wrap" hidden>
+      <label for="si-emp">Employee ID</label>
+      <input class="input mono" id="si-emp" value="e-104" autocomplete="off">
+    </div>
+    <button class="btn primary" id="si-go">Continue</button>
+    <p class="err" id="si-err" hidden></p>
+    <p class="foot">Local demo tokens. Switched off in production.</p>
+  </form>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
 /*
- * Everything here talks to the real API with a real (dev) token - no shortcuts. The demo trip is
- * built in the browser with the same shape as the "underpass" trip in the tests.
+ * One page, four screens, hash routing (#/trips, #/trips/ID, #/system, #/settings).
+ * Everything talks to the real API with a real dev token, so what a role can see here is exactly
+ * what the security rules allow - I'm not hiding anything in the browser that the server would hand out.
  */
-const state = { token: null, tripId: null, pingsByTrip: {}, lastLate: {} };
+const ROLES = {
+  admin:    { label: 'Admin+Operator', roles: ['ADMIN', 'OPERATOR'], hint: 'Sees everything: all trips, billing, system and settings.' },
+  operator: { label: 'Operator', roles: ['OPERATOR'], hint: 'Uploads trips and reads their breakdown. Can\'t list trips, bill or change settings.' },
+  employee: { label: 'Employee', roles: ['EMPLOYEE'], hint: 'Only the km of trips this employee rode in. Demo trips drop e-104.' }
+};
+const RULE_COLORS = { SHORT_GAP_AERIAL: '#8FA69A', ROUTED: '#43B02A', DEGRADED_AERIAL: '#B7791F', PARKED: '#2B6CB0', REJECTED_SPEED: '#C53030', REJECTED_DISTANCE: '#C53030' };
+const CLEANING_LABELS = {
+  'invalid-coordinate': 'Impossible coordinates',
+  'outside-trip-window': 'Outside the trip window',
+  'time-order': 'Out-of-order timestamps',
+  'duplicate': 'Duplicate pings',
+  'low-accuracy': 'Low-accuracy fixes',
+  'teleport': 'Teleports (impossible speed)'
+};
+const SOURCE_LABELS = { ACTUAL: 'actual', PROFILE_HOME: 'home from profile', PLANNED: 'planned', PLANNED_OFFICE: 'planned office' };
+
+const state = {
+  token: null, choice: null, view: null, tripId: null,
+  status: null,             // last /v1/admin/status
+  trips: [],                // admin trip list
+  filter: 'ALL', search: '',
+  kmCache: {},              // tripId -> { key, dist }  (key = updatedAt, so we only refetch when the trip changed)
+  pingsByTrip: {},          // pings we uploaded from this page, for the "just adding up pings" comparison
+  lastLate: {},             // what we need to send more late pings for a trip uploaded here
+  opened: [],               // operator: trips opened in this browser
+  detail: null              // last loaded { dist, br, adj } for the open trip
+};
 const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const isAdmin = () => state.choice && state.choice.role === 'admin';
+const isOperator = () => state.choice && state.choice.role === 'operator';
+const isEmployee = () => state.choice && state.choice.role === 'employee';
+
+// localStorage can throw (private mode, blocked storage), and the page must work without it
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem('tripledger.' + k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem('tripledger.' + k, JSON.stringify(v)); } catch (e) { /* fine, just not remembered */ } }
+};
 
 // ---------- API ----------
-async function api(method, path, body, extraHeaders) {
+async function api(method, path, body, extraHeaders, retried) {
   const headers = { 'Authorization': 'Bearer ' + state.token, ...(extraHeaders || {}) };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  // tokens live 8 h; if one ran out while the tab sat open, quietly get a new one and try once more
+  if (res.status === 401 && !retried && state.choice) {
+    await issueToken(state.choice);
+    return api(method, path, body, extraHeaders, true);
+  }
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
   if (!res.ok) {
-    const err = new Error((data && (data.detail || data.title)) || res.statusText);
+    const err = new Error((data && (data.detail || data.title)) || res.statusText || ('HTTP ' + res.status));
     err.problem = data;
+    err.status = res.status;
     throw err;
   }
   return data;
 }
 
-async function signIn() {
-  const tenant = $('tenant').value.trim() || 'acme';
-  try {
-    const res = await fetch('/v1/dev/tokens', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenant, subject: 'demo-console', roles: ['ADMIN', 'OPERATOR'] }) });
-    if (!res.ok) throw new Error('dev tokens are switched off on this server');
-    state.token = (await res.json()).token;
-    $('auth').textContent = tenant + ' · admin';
-    $('auth').className = 'pill ok';
-    refreshStatus();
-    refreshTrips();
-  } catch (e) {
-    $('auth').textContent = 'not signed in';
-    $('auth').className = 'pill bad';
-    toast('Could not get a demo token: ' + e.message, true);
+async function issueToken(choice) {
+  const subject = choice.role === 'employee' ? choice.employeeRef : 'demo-console';
+  const res = await fetch('/v1/dev/tokens', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tenant: choice.tenant, subject, roles: ROLES[choice.role].roles, employeeRef: choice.role === 'employee' ? choice.employeeRef : null })
+  });
+  if (res.status === 404) throw new Error('Demo tokens are switched off on this server.');
+  if (!res.ok) {
+    let msg = 'Could not get a demo token';
+    try { const p = await res.json(); msg = p.detail || p.title || msg; } catch (e) { /* keep the generic one */ }
+    throw new Error(msg);
   }
+  state.token = (await res.json()).token;
+}
+
+// ---------- sign-in ----------
+let pickedRole = 'admin';
+function openSignIn() {
+  const c = state.choice || store.get('signin') || { tenant: 'acme', role: 'admin', employeeRef: 'e-104' };
+  $('si-tenant').value = c.tenant;
+  $('si-emp').value = c.employeeRef || 'e-104';
+  pickRole(c.role);
+  $('si-err').hidden = true;
+  $('signin').hidden = false;
+  setTimeout(() => $('si-tenant').focus(), 30);
+}
+function pickRole(role) {
+  pickedRole = role;
+  document.querySelectorAll('#si-roles button').forEach(b => b.classList.toggle('active', b.dataset.role === role));
+  $('si-hint').textContent = ROLES[role].hint;
+  $('si-emp-wrap').hidden = role !== 'employee';
+}
+async function submitSignIn(ev) {
+  ev.preventDefault();
+  const choice = { tenant: $('si-tenant').value.trim() || 'acme', role: pickedRole, employeeRef: $('si-emp').value.trim() || 'e-104' };
+  $('si-go').classList.add('busy');
+  try {
+    await signIn(choice);
+    $('signin').hidden = true;
+  } catch (e) {
+    $('si-err').textContent = e.message;
+    $('si-err').hidden = false;
+  } finally { $('si-go').classList.remove('busy'); }
+}
+async function signIn(choice) {
+  await issueToken(choice);
+  // a different company or role means everything cached so far belongs to someone else
+  const changed = !state.choice || state.choice.tenant !== choice.tenant || state.choice.role !== choice.role;
+  state.choice = choice;
+  store.set('signin', choice);
+  if (changed) { state.kmCache = {}; state.trips = []; state.status = null; state.detail = null; }
+  state.opened = store.get('opened.' + choice.tenant) || [];
+  $('who-tenant').textContent = choice.tenant;
+  $('who-role').textContent = choice.role === 'employee' ? 'Employee ' + choice.employeeRef : ROLES[choice.role].label;
+  document.querySelectorAll('.admin-only').forEach(el => el.hidden = !isAdmin());
+  document.querySelectorAll('.operator-only').forEach(el => el.hidden = !isOperator());
+  $('emp-sub').textContent = `Signed in as employee ${choice.employeeRef}. You can see the km of trips you rode in, and nothing else.`;
+  route();
+}
+
+// ---------- routing ----------
+function route() {
+  if (!state.token) return;
+  const parts = (location.hash.replace(/^#\/?/, '') || 'trips').split('/');
+  let view = ['trips', 'system', 'settings'].includes(parts[0]) ? parts[0] : 'trips';
+  if (view !== 'trips' && !isAdmin()) { location.hash = '#/trips'; return; }
+  const tripId = view === 'trips' && parts[1] ? decodeURIComponent(parts[1]) : null;
+  document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('active', a.dataset.tab === view));
+
+  let section = view;
+  if (isEmployee()) section = 'employee';
+  else if (tripId) section = 'detail';
+  state.view = section;
+  ['trips', 'detail', 'system', 'settings', 'employee'].forEach(v => $('view-' + v).hidden = v !== section);
+  window.scrollTo(0, 0);
+
+  if (section === 'employee') { if (tripId) { $('emp-id').value = tripId; lookUpAsEmployee(tripId); } }
+  else if (section === 'detail') openTrip(tripId);
+  else if (section === 'trips') { renderTripTable(); refreshTrips(); refreshStatus(); }
+  else if (section === 'system') refreshSystem();
+  else if (section === 'settings') loadSettings();
 }
 
 // ---------- the demo trip (same geometry as the tests' underpass trip) ----------
@@ -225,7 +696,7 @@ function haversine(a, b) {
   return 2 * 6371008.8 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-function buildUnderpassTrip() {
+function buildUnderpassTrip(withBadFix) {
   // every new trip starts a little further east, so the map service has to route it fresh
   const shift = (Date.now() % 997) * 7;
   const office = east({ lat: 12.9698, lon: 77.7500 }, shift);
@@ -234,7 +705,16 @@ function buildUnderpassTrip() {
   const pings = [];
   let p = office;
   for (let i = 0; i < 181; i++) { pings.push({ ts: at(i * 5), lat: p.lat, lon: p.lon, accuracyM: 6, seq: i }); p = north(p, 50); }
-  const g0 = pings[180];
+  if (withBadFix) {
+    // two pings 9 km away, 1 s apart, slipped in between two normal ones (same idea as the Postman "bad fix").
+    // Nothing on the ground moves 9 km in 2 seconds, so the teleport filter should throw both out.
+    const base = pings[60];
+    const far = east(base, 9000);
+    pings.splice(61, 0,
+      { ts: at(302), lat: far.lat, lon: far.lon, accuracyM: 5, seq: 1000 },
+      { ts: at(303), lat: north(far, 20).lat, lon: far.lon, accuracyM: 5, seq: 1001 });
+  }
+  const g0 = pings[pings.length - 1];
   const drop = east(north(g0, 3987.6), 2085.4);       // where employee e-104 was dropped, inside the GPS gap
   let q = east(g0, 2400);                              // GPS comes back 2.4 km east of where it went quiet
   for (let i = 0; i < 141; i++) { pings.push({ ts: at(2220 + i * 5), lat: q.lat, lon: q.lon, accuracyM: 6, seq: 181 + i }); q = north(q, 50); }
@@ -248,7 +728,7 @@ function buildUnderpassTrip() {
       ],
       plannedStops: [{ employeeRef: 'e-104', riderType: 'PLANNED', lat: drop.lat, lon: drop.lon, plannedTs: at(1560) }]
     },
-    t0, last: q
+    last: q
   };
 }
 
@@ -258,132 +738,270 @@ function naiveKm(pings) {
   return m / 1000;
 }
 
-// ---------- actions ----------
 // crypto.randomUUID only exists on https / localhost; opened over a LAN IP we fall back to a random string
 const newKey = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
   : 'k-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
 
-async function uploadTrip() {
-  const trip = buildUnderpassTrip();
+// ---------- actions ----------
+async function uploadTrip(withBadFix, button) {
+  const trip = buildUnderpassTrip(withBadFix);
   const tripId = 'DEMO-' + Date.now().toString(36).toUpperCase();
-  await guarded('btn-upload', async () => {
+  await guarded(button, async () => {
     const res = await api('POST', `/v1/trips/${tripId}/evidence`, trip.request, { 'Idempotency-Key': newKey() });
-    state.pingsByTrip[tripId] = trip.request.pings.slice();
+    const sorted = trip.request.pings.slice().sort((a, b) => a.ts.localeCompare(b.ts));
+    state.pingsByTrip[tripId] = sorted;
     state.lastLate[tripId] = { req: trip.request, next: trip.last, sec: 2925, seq: 322 };
-    toast(`Uploaded ${res.pingsReceived} pings - computing in the background...`);
+    rememberOpened(tripId);
+    toast(`Uploaded ${res.pingsReceived} pings. Computing in the background...`);
+    location.hash = '#/trips/' + tripId;
     await waitForResult(tripId);
-    refreshTrips();
   });
 }
 
 async function billTrip() {
-  if (!state.tripId) return;
+  const id = state.tripId;
   const invoice = 'INV-' + new Date().toISOString().slice(0, 10).replaceAll('-', '') + '-' + Math.floor(Math.random() * 900 + 100);
-  await guarded('btn-bill', async () => {
-    const res = await api('POST', `/v1/trips/${state.tripId}/bill`, { invoiceId: invoice });
+  await guarded($('d-bill'), async () => {
+    const res = await api('POST', `/v1/trips/${id}/bill`, { invoiceId: invoice });
     toast(`Billed ${res.billedKm} km on ${res.invoiceId}`);
-    await loadTrip(state.tripId);
+    await loadTrip(id);
   });
 }
 
-async function sendLatePings() {
-  const memo = state.lastLate[state.tripId];
-  if (!memo) { toast('Late pings work on a trip uploaded from this page', true); return; }
+async function sendLatePings(button) {
+  const id = state.tripId;
+  const memo = state.lastLate[id];
+  if (!memo) { toast('Late pings only work on a trip uploaded from this page', true); return; }
   const late = [];
   let p = memo.next;
   for (let i = 0; i < 30; i++) {
     late.push({ ts: new Date(new Date(memo.req.windowStart).getTime() + (memo.sec + i * 5) * 1000).toISOString(), lat: p.lat, lon: p.lon, accuracyM: 6, seq: memo.seq + i });
     p = north(p, 50);
   }
-  memo.next = p; memo.sec += 150; memo.seq += 30;
   const req = { ...memo.req, pings: late };
-  await guarded('btn-late', async () => {
-    const res = await api('POST', `/v1/trips/${state.tripId}/evidence`, req, { 'Idempotency-Key': newKey() });
-    state.pingsByTrip[state.tripId].push(...late);
-    toast(`Late pings: ${res.pingsNew} new - recomputing...`);
-    await waitForResult(state.tripId);
+  await guarded(button, async () => {
+    const res = await api('POST', `/v1/trips/${id}/evidence`, req, { 'Idempotency-Key': newKey() });
+    // only move the memo on once the server took them, so a failed send can simply be retried
+    memo.next = p; memo.sec += 150; memo.seq += 30;
+    state.pingsByTrip[id].push(...late);
+    toast(`Late pings: ${res.pingsNew} new. Recomputing...`);
+    await waitForResult(id);
   });
 }
 
-async function recompute() {
-  if (!state.tripId) return;
-  await guarded('btn-recompute', async () => {
-    const res = await api('POST', `/v1/trips/${state.tripId}/recompute`);
-    toast(`Recompute queued...`);
-    // recompute keeps the old status until the worker picks the job up (it looks every 2 s)
-    await new Promise(r => setTimeout(r, 2500));
-    await waitForResult(state.tripId);
-    refreshTrips();
+async function recomputeTrip(id, button, quiet) {
+  await guarded(button, async () => {
+    await api('POST', `/v1/trips/${id}/recompute`);
+    if (!quiet) toast(`Recompute of ${id} queued...`);
+    // the trip keeps its old status until the worker picks the job up (it looks every 2 s)
+    await sleep(2500);
+    await waitForResult(id, quiet);
   });
 }
 
 async function toggleProvider() {
-  const off = !$('btn-provider').classList.contains('off');
-  try {
-    await api('PUT', '/v1/admin/routing/mock', { down: off });
-    toast(off ? 'Map service switched OFF - new gaps will be DEGRADED' : 'Map service back ON');
-    refreshStatus();
-  } catch (e) { showError(e); }
+  const goingDown = !(state.status && state.status.routing.providerDown);
+  await guarded($('s-toggle'), async () => {
+    await api('PUT', '/v1/admin/routing/mock', { down: goingDown });
+    toast(goingDown ? 'Map service switched OFF. New gaps will be guessed and trips come out DEGRADED.' : 'Map service back ON. The recovery scan will fix DEGRADED trips.');
+    await refreshStatus();
+  });
 }
 
-// uploads only queue a job (the worker polls every 2 s), so poll until the trip has an answer
-async function waitForResult(tripId) {
+// uploads only queue a job, so poll until the trip has an answer
+async function waitForResult(id, quiet) {
+  let d;
   for (let i = 0; i < 20; i++) {
-    const d = await api('GET', `/v1/trips/${tripId}/distance`);
+    d = await api('GET', `/v1/trips/${id}/distance`);
     if (d.status !== 'RECEIVED') break;
-    await new Promise(r => setTimeout(r, 750));
+    await sleep(750);
   }
-  await loadTrip(tripId);
-  refreshTrips();
-  toast(`${tripId}: ${$('k-status').textContent} · ${$('k-km').textContent.replace('km', ' km')}`);
+  if (state.view === 'detail' && state.tripId === id) await loadTrip(id);
+  if (state.view === 'system') refreshSystem();
+  if (!quiet) toast(d.status === 'RECEIVED' ? `${id} is still in the queue. It'll show up when it's done.` : `${id}: ${d.status} · ${d.billableKm} km`);
 }
 
-async function guarded(buttonId, fn) {
-  const b = $(buttonId);
-  b.disabled = true;
-  try { await fn(); } catch (e) { showError(e); } finally { b.disabled = false; updateButtons(); }
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function guarded(button, fn) {
+  if (button) { button.disabled = true; button.classList.add('busy'); }
+  try { await fn(); } catch (e) { showError(e); }
+  finally { if (button) { button.disabled = false; button.classList.remove('busy'); } updateDetailButtons(); }
 }
 
-// ---------- rendering ----------
+function rememberOpened(id) {
+  state.opened = [id, ...state.opened.filter(x => x !== id)].slice(0, 20);
+  if (state.choice) store.set('opened.' + state.choice.tenant, state.opened);
+}
+
+// ---------- trips screen ----------
+let tripsBusy = false;
+async function refreshTrips() {
+  if (state.view !== 'trips' || tripsBusy) return;
+  tripsBusy = true;
+  try {
+    if (isAdmin()) {
+      state.trips = await api('GET', '/v1/trips?limit=200');
+    } else {
+      // operators: no list endpoint for them, so we show the trips they opened here, read one by one
+      state.trips = state.opened.map(id => ({ tripId: id, status: (state.kmCache[id] && state.kmCache[id].dist.status) || '', updatedAt: null }));
+    }
+    renderTripTable();
+  } catch (e) { /* the next tick will try again */ }
+  finally { tripsBusy = false; }
+}
+
+function renderTripTable() {
+  const all = state.trips;
+  if (isAdmin()) {
+    const n = (s) => all.filter(t => t.status === s).length;
+    $('c-computed').textContent = n('COMPUTED');
+    $('c-degraded').textContent = n('DEGRADED');
+    $('c-received').textContent = n('RECEIVED');
+    const tabs = [['ALL', 'All', all.length], ['COMPUTED', 'Computed', n('COMPUTED')], ['DEGRADED', 'Degraded', n('DEGRADED')], ['RECEIVED', 'Received', n('RECEIVED')]];
+    $('filters').innerHTML = tabs.map(([k, label, c]) => `<button data-f="${k}" class="${state.filter === k ? 'active' : ''}">${label} (${c})</button>`).join('');
+    $('filters').querySelectorAll('button').forEach(b => b.onclick = () => { state.filter = b.dataset.f; renderTripTable(); });
+  }
+  const q = state.search.trim().toLowerCase();
+  const rows = all.filter(t => (state.filter === 'ALL' || t.status === state.filter) && (!q || t.tripId.toLowerCase().includes(q)));
+  const shown = rows.slice(0, 50);
+  if (!shown.length) {
+    const msg = !all.length ? (isAdmin() ? 'No trips yet. Upload a sample trip to get started.' : 'Nothing opened yet. Upload a sample trip, or open one by ID.') : 'No trip matches.';
+    $('trip-rows').innerHTML = `<tr><td colspan="5" class="empty">${msg}</td></tr>`;
+  } else {
+    $('trip-rows').innerHTML = shown.map(t => {
+      const cached = state.kmCache[t.tripId];
+      const d = cached && cached.dist;
+      const status = t.status || (d && d.status) || '';
+      return `<tr class="link" tabindex="0" data-trip="${esc(t.tripId)}">
+        <td><span class="chip">${esc(t.tripId)}</span></td>
+        <td>${status ? `<span class="pill ${statusClass(status)}">${status}</span>` : '<span class="muted">...</span>'}</td>
+        <td class="hide-sm muted">${t.updatedAt ? ago(t.updatedAt) : (d && d.computedAt ? ago(d.computedAt) : '-')}</td>
+        <td class="num km" data-km="${esc(t.tripId)}">${d ? (d.billableKm ? d.billableKm + ' km' : '<span class="muted">-</span>') : '<span class="muted">...</span>'}</td>
+        <td class="num hide-sm" data-calls="${esc(t.tripId)}">${d && d.routing ? d.routing.providerCalls : (d ? '-' : '<span class="muted">...</span>')}</td></tr>`;
+    }).join('');
+    $('trip-rows').querySelectorAll('tr.link').forEach(tr => {
+      const go = () => { location.hash = '#/trips/' + encodeURIComponent(tr.dataset.trip); };
+      tr.onclick = go;
+      tr.onkeydown = (e) => { if (e.key === 'Enter') go(); };
+    });
+  }
+  $('trip-foot').hidden = rows.length <= 50;
+  $('trip-foot').textContent = `Showing the newest 50 of ${rows.length}. Search to find older ones.`;
+  fillDistances(shown, () => { if (state.view === 'trips') renderTripTable(); });
+}
+
+// The list only has id + status + time, so km and calls come from /distance, one call per row.
+// Cached against updatedAt, so a row is only fetched again after the trip actually changed.
+const inflight = new Set();
+async function fillDistances(rows, onDone) {
+  const todo = rows.filter(t => {
+    const c = state.kmCache[t.tripId];
+    const key = t.updatedAt || ('st:' + t.status);
+    return !inflight.has(t.tripId) && (!c || (t.updatedAt ? c.key !== key : c.dist.status !== 'COMPUTED'));
+  });
+  if (!todo.length) return;
+  todo.forEach(t => inflight.add(t.tripId));
+  let changed = false;
+  // four at a time is plenty, and keeps a big list from flooding the server
+  const queue = todo.slice();
+  await Promise.all([0, 1, 2, 3].map(async () => {
+    while (queue.length) {
+      const t = queue.shift();
+      try {
+        const dist = await api('GET', `/v1/trips/${encodeURIComponent(t.tripId)}/distance`);
+        state.kmCache[t.tripId] = { key: t.updatedAt || ('st:' + dist.status), dist };
+        changed = true;
+      } catch (e) { /* leave it, next refresh tries again */ }
+      finally { inflight.delete(t.tripId); }
+    }
+  }));
+  if (changed && onDone) onDone();
+}
+
+// ---------- trip detail ----------
 let map, layer;
 function initMap() {
-  if (!window.L) { $('map').innerHTML = '<div class="empty">Map library could not load (offline?). Everything else still works.</div>'; return; }
+  if (map !== undefined) return;
+  if (!window.L) { map = null; $('map').innerHTML = '<div class="map-empty">The map library couldn\'t load (offline?). Everything else still works.</div>'; return; }
   map = L.map('map', { zoomControl: true }).setView([13.01, 77.76], 12);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
   layer = L.layerGroup().addTo(map);
+  // the map's size comes from the layout, so let Leaflet re-measure when the window changes
+  window.addEventListener('resize', () => map.invalidateSize());
 }
 
-const RULE_COLORS = { SHORT_GAP_AERIAL: '#8FA69A', ROUTED: '#43B02A', DEGRADED_AERIAL: '#B7791F', PARKED: '#2B6CB0', REJECTED_SPEED: '#C53030', REJECTED_DISTANCE: '#C53030' };
+function openTrip(id) {
+  if (state.tripId !== id) {
+    state.detail = null;
+    clearDetail(id);
+  }
+  state.tripId = id;
+  rememberOpened(id);
+  initMap();
+  // the map was hidden until now, so it has to measure itself again
+  setTimeout(() => { if (map) map.invalidateSize(); }, 0);
+  loadTrip(id).catch(e => {
+    if (e.status === 404) {
+      $('d-status').textContent = 'NOT FOUND'; $('d-status').className = 'pill bad';
+      $('d-meta').textContent = 'There is no trip with this ID in ' + state.choice.tenant + '.';
+    } else showError(e);
+  });
+}
 
-async function loadTrip(tripId) {
-  state.tripId = tripId;
+function clearDetail(id) {
+  $('d-id').textContent = id;
+  ['d-status', 'd-status2'].forEach(x => { $(x).textContent = 'LOADING'; $(x).className = 'pill'; });
+  $('d-meta').textContent = '';
+  $('d-km').innerHTML = '-'; $('d-km-note').textContent = '';
+  $('d-calls').textContent = '-'; $('d-calls-note').textContent = '';
+  $('d-status-note').textContent = '';
+  $('d-rules').textContent = '-'; $('d-segcount').textContent = '';
+  $('d-segtotal').textContent = ''; $('d-rulesum').innerHTML = ''; $('d-segs').innerHTML = '';
+  $('d-clean-line').textContent = '-'; $('d-clean').innerHTML = ''; $('d-anchors').innerHTML = ''; $('d-clean-pill').textContent = '-';
+  $('d-invoice').innerHTML = '';
+  if (layer) layer.clearLayers();
+}
+
+async function loadTrip(id) {
+  const enc = encodeURIComponent(id);
   const [dist, br, adj] = await Promise.all([
-    api('GET', `/v1/trips/${tripId}/distance`),
-    api('GET', `/v1/trips/${tripId}/breakdown`),
-    api('GET', `/v1/trips/${tripId}/adjustments`)
+    api('GET', `/v1/trips/${enc}/distance`),
+    api('GET', `/v1/trips/${enc}/breakdown`),
+    api('GET', `/v1/trips/${enc}/adjustments`)
   ]);
-  renderKpis(dist);
+  if (state.tripId !== id) return; // they've moved on to another trip meanwhile
+  state.detail = { dist, br, adj };
+  state.kmCache[id] = { key: state.kmCache[id] ? state.kmCache[id].key : 'st:' + dist.status, dist };
+  renderHeader(dist);
+  renderStats(dist);
   renderMap(br);
   renderSegments(br);
-  renderBilling(adj);
-  $('trip-title').textContent = tripId;
-  $('trip-meta').textContent = dist.computedAt ? `computed ${new Date(dist.computedAt).toLocaleTimeString()} · rules ${dist.ruleVersion} · settings v${dist.configVersion}` : '';
-  state.billed = !!adj.invoiceId;
-  updateButtons();
+  renderCleaning(br);
+  renderInvoice(adj);
+  updateDetailButtons();
 }
 
-function renderKpis(d) {
-  $('k-km').innerHTML = d.billableKm ? `${d.billableKm}<small>km</small>` : '-';
+function renderHeader(d) {
+  $('d-id').textContent = d.tripId;
+  $('d-status').textContent = d.status; $('d-status').className = 'pill ' + statusClass(d.status);
+  $('d-meta').textContent = d.computedAt ? `computed ${time(d.computedAt)} · rules ${d.ruleVersion} · settings v${d.configVersion}` : 'not computed yet';
+}
+
+function renderStats(d) {
+  $('d-km').innerHTML = d.billableKm ? `${d.billableKm}<small>km</small>` : '-';
   const pings = state.pingsByTrip[d.tripId];
-  $('k-naive').innerHTML = pings ? `${naiveKm(pings).toFixed(2)}<small>km</small>` : '-';
+  $('d-km-note').textContent = !d.billableKm ? 'Waiting for the first calculation'
+    : pings ? `Just adding up the pings gives ${naiveKm(pings).toFixed(2)} km` : 'Rebuilt from cleaned pings and measured gaps';
   if (d.routing) {
-    $('k-calls').textContent = d.routing.providerCalls;
-    $('k-calls-note').textContent = `${d.routing.requests + d.routing.replayed} lookups · ${d.routing.cacheHits} cached · ${d.routing.replayed} replayed`;
-  }
-  const s = $('k-status');
-  s.textContent = d.status;
-  s.className = 'pill ' + (d.status === 'COMPUTED' ? 'ok' : d.status === 'DEGRADED' ? 'warn' : '');
-  $('k-status-note').textContent = d.status === 'DEGRADED' ? `${d.routing ? d.routing.unavailable : 0} gap(s) guessed - will be fixed automatically` : (d.status === 'COMPUTED' ? 'every gap measured properly' : '');
+    $('d-calls').textContent = d.routing.providerCalls;
+    $('d-calls-note').textContent = `${d.routing.requests + d.routing.replayed} lookups · ${d.routing.cacheHits} cached · ${d.routing.replayed} replayed`;
+  } else { $('d-calls').textContent = '-'; $('d-calls-note').textContent = ''; }
+  $('d-status2').textContent = d.status; $('d-status2').className = 'pill ' + statusClass(d.status);
+  const guessed = d.routing ? d.routing.unavailable : 0;
+  $('d-status-note').textContent = d.status === 'DEGRADED' ? `${guessed} gap(s) guessed as straight line × 1.4. Fixed by itself once the map service is back.`
+    : d.status === 'COMPUTED' ? 'Every gap measured properly · 0 guesses'
+    : 'In the compute queue. The worker looks every 2 seconds.';
 }
 
 function renderMap(br) {
@@ -400,70 +1018,272 @@ function renderMap(br) {
   for (const a of (br.anchors || [])) {
     const isOffice = a.kind === 'OFFICE';
     L.circleMarker([a.lat, a.lon], { radius: isOffice ? 8 : 7, color: '#fff', weight: 2, fillColor: isOffice ? '#171717' : '#1F5C14', fillOpacity: 1 })
-      .bindTooltip(`${isOffice ? 'Office' : a.kind.replace('EMPLOYEE_', '').toLowerCase() + ' of ' + a.employeeRef} · ${a.source.toLowerCase().replace('_', ' ')}`).addTo(layer);
+      .bindTooltip(`${anchorLabel(a)} · ${SOURCE_LABELS[a.source] || a.source}`).addTo(layer);
   }
-  if (bounds.length) map.fitBounds(bounds, { padding: [24, 24] });
+  if (bounds.length) map.fitBounds(bounds, { padding: [28, 28] });
+  $('d-rules').textContent = br.ruleVersion ? 'rules ' + br.ruleVersion : 'no run yet';
+  $('d-segcount').textContent = br.segments.length ? `${br.segments.length} segments` : '';
 }
 
 function renderSegments(br) {
+  const segs = br.segments;
+  if (!segs.length) { $('d-segs').innerHTML = '<div class="empty" style="padding:16px 0">Nothing measured yet.</div>'; return; }
   const counts = br.ruleCounts || {};
-  $('rule-chips').innerHTML = Object.entries(counts).map(([r, n]) => `<span class="chip"><b>${n}</b> ${r.replaceAll('_', ' ').toLowerCase()}</span>`).join('');
-  // the interesting ones first: everything that isn't a plain 5-second hop
-  const interesting = br.segments.filter(s => s.rule !== 'SHORT_GAP_AERIAL');
-  const shortKm = br.segments.filter(s => s.rule === 'SHORT_GAP_AERIAL').reduce((t, s) => t + s.distanceMm, 0) / 1e6;
-  const t = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const rows = interesting.map(s => `<tr><td>${s.seq}</td><td>${t(s.from)}</td><td>${t(s.to)}</td>
-      <td><span class="pill ${s.rule === 'ROUTED' ? 'ok' : s.rule.startsWith('REJECTED') ? 'bad' : s.rule === 'DEGRADED_AERIAL' ? 'warn' : ''}">${s.rule.replaceAll('_', ' ').toLowerCase()}</span></td>
-      <td class="num">${s.km}</td></tr>`);
-  rows.push(`<tr><td colspan="3" class="muted">${counts.SHORT_GAP_AERIAL || 0} short hops between pings</td><td><span class="pill">short gap aerial</span></td><td class="num">${shortKm.toFixed(3)}</td></tr>`);
-  $('segments').innerHTML = rows.join('');
+  $('d-segtotal').textContent = `${segs.length} segments`;
+  const tone = { ROUTED: 'g', DEGRADED_AERIAL: 'a', REJECTED_SPEED: 'r', REJECTED_DISTANCE: 'r' };
+  $('d-rulesum').innerHTML = Object.entries(counts)
+    .map(([r, n]) => `<span class="${tone[r] || ''}">${n} ${r.replaceAll('_', ' ').toLowerCase()}</span>`).join(' · ');
+  // the interesting ones first: everything that isn't a plain short hop between two pings
+  const interesting = segs.filter(s => s.rule !== 'SHORT_GAP_AERIAL');
+  const hops = segs.filter(s => s.rule === 'SHORT_GAP_AERIAL');
+  const hopKm = hops.reduce((t, s) => t + s.distanceMm, 0) / 1e6;
+  const cards = interesting.slice(0, 15).map(s => {
+    const mins = Math.round((new Date(s.to) - new Date(s.from)) / 60000);
+    return `<div class="seg"><div>
+        <div class="top"><span class="rule ${s.rule}">${s.rule}</span>Gap #${s.seq}</div>
+        <div class="when">${time(s.from)} - ${time(s.to)} · ${mins} min without GPS</div>
+        ${s.needsReview ? '<div class="look">Paid as a straight line. Worth a look.</div>' : ''}
+      </div><div class="km">${Number(s.km).toFixed(2)} km</div></div>`;
+  });
+  if (interesting.length > 15) cards.push(`<div class="muted" style="font-size:13px">+ ${interesting.length - 15} more gaps (hover the map to see them)</div>`);
+  if (!interesting.length) cards.push('<div class="muted" style="font-size:13px">No gaps in this trip. GPS never went quiet for long.</div>');
+  cards.push(`<div class="seg hops"><span class="lbl">${hops.length} short hops between pings</span><span class="km">${hopKm.toFixed(2)} km</span></div>`);
+  $('d-segs').innerHTML = cards.join('');
+}
+
+function renderCleaning(br) {
   const cl = br.cleaning;
-  $('seg-note').textContent = cl ? `Cleaning: ${cl.received} pings in, ${cl.kept} kept` + (cl.received > cl.kept ? ` (${Object.entries(cl.removed).filter(([, n]) => n).map(([f, n]) => n + ' ' + f).join(', ')})` : '') : '';
+  if (!cl) { $('d-clean-line').textContent = 'Not computed yet'; $('d-clean').innerHTML = ''; $('d-anchors').innerHTML = ''; return; }
+  const removed = cl.received - cl.kept;
+  $('d-clean-line').textContent = `${cl.received} pings in, ${cl.kept} kept`;
+  $('d-clean-pill').textContent = removed ? `${removed} removed` : 'all kept';
+  $('d-clean-pill').className = 'pill ' + (removed ? 'warn' : 'ok');
+  $('d-clean').innerHTML = Object.entries(cl.removed || {}).map(([f, n]) =>
+    `<div class="row"><span class="k">${esc(CLEANING_LABELS[f] || f)}</span><span class="v ${n ? 'hit' : ''}">${n} removed</span></div>`).join('');
+  const anchors = br.anchors || [];
+  $('d-anchors').innerHTML = anchors.length ? anchors.map(a =>
+    `<div class="row"><span class="k">${esc(anchorLabel(a))}</span><span class="v">${esc(SOURCE_LABELS[a.source] || a.source)}</span></div>`).join('')
+    : '<div class="row"><span class="k">None</span></div>';
 }
 
-function renderBilling(a) {
-  if (!a.invoiceId) { $('billing').innerHTML = '<div class="empty">Not billed yet</div>'; return; }
-  const lines = a.adjustments.map(x => `<tr><td>${new Date(x.createdAt).toLocaleTimeString()}</td>
-      <td class="num ${x.deltaKm.startsWith('-') ? 'delta-neg' : 'delta-pos'}">${x.deltaKm} km</td></tr>`).join('');
-  $('billing').innerHTML = `
-    <div class="kv"><span>Invoice</span><b>${a.invoiceId}</b></div>
-    <div class="kv"><span>Billed then</span><span>${a.billedKm} km</span></div>
-    ${a.adjustments.length ? `<table style="margin:8px 0"><thead><tr><th>Adjustment</th><th class="num">Change</th></tr></thead><tbody>${lines}</tbody></table>` : '<p class="muted" style="font-size:12.5px">No changes since billing.</p>'}
-    <div class="kv"><span>Charged in total</span><b>${a.chargedKm} km</b></div>
-    <p class="muted" style="font-size:12px;margin:8px 0 0">The invoice is never edited - every later change is its own signed line.</p>`;
+function renderInvoice(a) {
+  const box = $('d-invoice');
+  const canLate = !isEmployee() && !!state.lastLate[state.tripId];
+  const lateBtn = `<button class="btn small" id="d-late" ${canLate ? '' : 'disabled title="Only for trips uploaded from this page"'}>Send late pings (demo)</button>`;
+  if (!a.invoiceId) {
+    box.innerHTML = `<div class="inv-empty"><div><h2>Not on an invoice yet</h2>
+        <p>Billing freezes today's km. If anything changes later (late pings, a fix after an outage) the invoice stays as it is and the change shows up here as its own signed line.</p></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">${lateBtn}${isAdmin() ? '<button class="btn primary" id="d-bill2">Bill this trip</button>' : ''}</div></div>`;
+  } else {
+    const deltaMm = a.adjustments.reduce((t, x) => t + x.deltaMm, 0);
+    const delta = deltaMm / 1e6;
+    const deltaTxt = (delta > 0 ? '+' : delta < 0 ? '' : '±') + delta.toFixed(2);
+    const lines = a.adjustments.map(x => `<tr><td>${dateTime(x.createdAt)}</td>
+        <td class="hide-sm"><span class="chip">${short(x.fromRunId)}</span> → <span class="chip">${short(x.toRunId)}</span></td>
+        <td class="num ${x.deltaKm.startsWith('-') ? 'delta-neg' : 'delta-pos'}">${x.deltaKm} km</td></tr>`).join('');
+    box.innerHTML = `
+      <div class="inv-top">
+        <div class="inv-id"><span class="label">Invoice</span><span class="chip">${esc(a.invoiceId)}</span><span class="pill ok">Billed</span></div>
+        <div class="inv-sum">
+          <div><div class="label">Billed then</div><div class="v">${a.billedKm} km</div></div><div class="op">+</div>
+          <div><div class="label">Adjustments</div><div class="v ${delta > 0 ? 'pos' : delta < 0 ? 'neg' : ''}">${deltaTxt} km</div></div><div class="op">=</div>
+          <div><div class="label">Charged in total</div><div class="v total">${a.chargedKm} km</div></div>
+        </div>
+        <button class="btn" id="d-csv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Download as CSV</button>
+      </div>
+      ${a.adjustments.length ? `<div class="table-wrap"><table><thead><tr><th>When</th><th class="hide-sm">From run → to run</th><th class="num">Change</th></tr></thead><tbody>${lines}</tbody></table></div>`
+        : '<div class="empty">No changes since it was billed.</div>'}
+      <div class="inv-foot"><span>The invoice is never edited. Every later change is its own signed line.</span>${lateBtn}</div>`;
+    $('d-csv').onclick = () => downloadCsv(a);
+  }
+  if ($('d-late')) $('d-late').onclick = (e) => sendLatePings(e.currentTarget);
+  if ($('d-bill2')) $('d-bill2').onclick = billTrip;
 }
 
-function updateButtons() {
-  const has = !!state.tripId;
-  $('btn-bill').disabled = !has || state.billed;
-  $('btn-late').disabled = !has || !state.lastLate[state.tripId];
-  $('btn-recompute').disabled = !has;
+function updateDetailButtons() {
+  const d = state.detail;
+  const computed = d && d.dist.billableKm;
+  $('d-bill').disabled = !computed || !!(d && d.adj.invoiceId);
+  $('d-bill').title = d && d.adj.invoiceId ? 'Already on ' + d.adj.invoiceId : '';
+  if ($('d-bill2')) $('d-bill2').disabled = !computed;
 }
 
+function downloadCsv(a) {
+  const rows = [['trip_id', 'invoice_id', 'line', 'when', 'from_run', 'to_run', 'km']];
+  rows.push([a.tripId, a.invoiceId, 'billed', '', '', '', a.billedKm]);
+  a.adjustments.forEach(x => rows.push([a.tripId, a.invoiceId, 'adjustment', x.createdAt, x.fromRunId, x.toRunId, x.deltaKm]));
+  rows.push([a.tripId, a.invoiceId, 'charged_total', '', '', '', a.chargedKm]);
+  const csv = rows.map(r => r.map(v => /[",\n]/.test(String(v)) ? `"${String(v).replaceAll('"', '""')}"` : v).join(',')).join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  const link = document.createElement('a');
+  link.href = url; link.download = `${a.tripId}-${a.invoiceId}.csv`;
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ---------- system ----------
+let statusBusy = false;
 async function refreshStatus() {
-  if (!state.token) return;
+  if (!isAdmin() || statusBusy) return;
+  statusBusy = true;
   try {
     const s = await api('GET', '/v1/admin/status');
-    const off = s.routing.providerDown === true;
-    $('btn-provider').classList.toggle('off', off);
+    state.status = s;
+    const down = s.routing.providerDown === true;
+    const switchable = s.routing.providerDown !== null && s.routing.providerDown !== undefined;
     const b = s.routing.breaker;
-    $('s-breaker').textContent = b;
-    $('s-breaker').className = 'pill ' + (b === 'CLOSED' ? 'ok' : b === 'OPEN' ? 'bad' : 'warn');
-    $('s-cache').textContent = `${s.routing.cachedRoutes} (${Math.round(s.routing.cacheHitRatio * 100)}% hits)`;
-    $('s-queue').textContent = `${s.jobs.pending} / ${s.jobs.running}`;
+    const bClass = b === 'CLOSED' ? 'ok' : b === 'OPEN' ? 'bad' : 'warn';
+    // trips screen card
+    $('c-breaker').textContent = b; $('c-breaker').className = 'pill ' + bClass;
+    $('c-map').innerHTML = `<span class="dot ${down ? 'off' : ''}"></span>${down ? 'OFFLINE' : 'ONLINE'}`;
+    $('c-map-note').textContent = `${s.routing.provider} provider · ${s.routing.cachedRoutes} cached routes`;
+    // system screen cards
+    ['s-breaker1', 's-breaker2'].forEach(x => { $(x).textContent = b; $(x).className = 'pill ' + bClass; });
+    $('s-online').innerHTML = `<span class="dot ${down ? 'off' : ''}"></span>${down ? 'OFFLINE' : 'ONLINE'} (${esc(s.routing.provider)})`;
+    $('s-toggle').hidden = !switchable;
+    $('s-toggle').textContent = down ? 'Bring back online' : 'Take offline';
+    $('s-toggle').className = 'btn small ' + (down ? 'primary' : 'danger');
+    $('s-toggle-note').textContent = !switchable ? 'A real map provider is configured, so there is nothing to switch here.'
+      : down ? 'While offline, new gaps are guessed (straight line × 1.4). Bring it back and the recovery scan fixes those trips.'
+      : 'Offline: new gaps fall back to straight line × 1.4 and trips come out DEGRADED.';
+    $('s-cached').textContent = s.routing.cachedRoutes;
+    $('s-ratio').textContent = Math.round(s.routing.cacheHitRatio * 100) + '%';
+    $('s-pending').textContent = s.jobs.pending;
+    $('s-running').textContent = s.jobs.running;
+    $('s-failed').textContent = s.jobs.failedLast24h;
     $('s-lag').textContent = s.jobs.oldestPendingSeconds ? Math.round(s.jobs.oldestPendingSeconds) + ' s' : 'none';
+    const busyQ = s.jobs.failedLast24h > 0 ? ['bad', 'failures'] : s.jobs.oldestPendingSeconds > 30 ? ['warn', 'behind'] : ['ok', 'normal'];
+    $('s-queue-pill').textContent = busyQ[1]; $('s-queue-pill').className = 'pill ' + busyQ[0];
   } catch (e) { /* status is best effort */ }
+  finally { statusBusy = false; }
 }
 
-async function refreshTrips() {
-  if (!state.token) return;
+let systemBusy = false;
+async function refreshSystem() {
+  if (state.view !== 'system' || systemBusy) return;
+  systemBusy = true;
   try {
-    const trips = await api('GET', '/v1/trips?limit=8');
-    $('trips').innerHTML = trips.length ? trips.map(t => `<button data-trip="${t.tripId}"><span>${t.tripId}</span>
-        <span class="pill ${t.status === 'COMPUTED' ? 'ok' : t.status === 'DEGRADED' ? 'warn' : ''}">${t.status}</span></button>`).join('')
-      : '<div class="empty">No trips yet</div>';
-    $('trips').querySelectorAll('button').forEach(b => b.onclick = () => loadTrip(b.dataset.trip).catch(showError));
-  } catch (e) { /* best effort */ }
+    refreshStatus();
+    const degraded = await api('GET', '/v1/trips?status=DEGRADED&limit=200');
+    renderDegraded(degraded);
+    fillDistances(degraded, () => renderDegraded(degraded));
+  } catch (e) { /* next tick */ }
+  finally { systemBusy = false; }
+}
+
+function renderDegraded(list) {
+  $('s-dcount').textContent = list.length;
+  $('s-recompute-all').disabled = !list.length;
+  if (!list.length) { $('s-rows').innerHTML = '<tr><td colspan="6" class="empty">Nothing waiting. Every trip is fully measured.</td></tr>'; return; }
+  $('s-rows').innerHTML = list.map(t => {
+    const c = state.kmCache[t.tripId];
+    const d = c && c.dist;
+    const guessed = d && d.routing ? d.routing.unavailable : null;
+    return `<tr><td><a class="chip" href="#/trips/${encodeURIComponent(t.tripId)}" style="text-decoration:none">${esc(t.tripId)}</a></td>
+      <td><span class="pill warn">${t.status}</span></td>
+      <td class="hide-sm muted">${ago(t.updatedAt)}</td>
+      <td class="hide-sm muted">${guessed === null ? '...' : `${guessed} gap${guessed === 1 ? '' : 's'} guessed (straight line × 1.4)`}</td>
+      <td class="num km">${d && d.billableKm ? d.billableKm + ' km' : '...'}</td>
+      <td class="num"><button class="btn small" data-recompute="${esc(t.tripId)}">Recompute</button></td></tr>`;
+  }).join('');
+  $('s-rows').querySelectorAll('[data-recompute]').forEach(b => b.onclick = () => recomputeTrip(b.dataset.recompute, b).then(refreshSystem));
+}
+
+async function recomputeAll() {
+  const buttons = [...$('s-rows').querySelectorAll('[data-recompute]')];
+  const ids = buttons.map(b => b.dataset.recompute);
+  await guarded($('s-recompute-all'), async () => {
+    // queue them all first, then wait once - no need to sit on each trip in turn
+    for (const id of ids) await api('POST', `/v1/trips/${encodeURIComponent(id)}/recompute`);
+    toast(`Queued ${ids.length} recompute${ids.length === 1 ? '' : 's'}...`);
+    await sleep(3000);
+    await refreshSystem();
+    const left = Number($('s-dcount').textContent);
+    toast(left ? `${left} still DEGRADED. Is the map service back online?` : 'All recovered.');
+  });
+}
+
+// ---------- settings ----------
+let savedSettings = null;
+async function loadSettings() {
+  try {
+    savedSettings = await api('GET', '/v1/tenant/config');
+    fillSettings(savedSettings);
+  } catch (e) { showError(e); }
+}
+function fillSettings(c) {
+  $('set-version').textContent = c.version === 0 ? 'v0 active · defaults' : `v${c.version} active`;
+  setSwitch(c.noShowAnchorEnabled);
+  $('f-accuracy').value = c.maxAccuracyMetres;
+  $('f-speed').value = c.maxSpeedKmph;
+  $('f-radius').value = c.officeRadiusMetres;
+  $('f-maxroute').value = c.maxRouteKm;
+  $('set-save').textContent = `Save as v${c.version + 1}`;
+  markDirty();
+}
+function setSwitch(on) { $('f-noshow').classList.toggle('on', on); $('f-noshow').setAttribute('aria-checked', String(on)); }
+function formSettings() {
+  return {
+    noShowAnchorEnabled: $('f-noshow').classList.contains('on'),
+    maxAccuracyMetres: Number($('f-accuracy').value),
+    maxSpeedKmph: Number($('f-speed').value),
+    officeRadiusMetres: Number($('f-radius').value),
+    maxRouteKm: Number($('f-maxroute').value)
+  };
+}
+function markDirty() {
+  if (!savedSettings) return;
+  const f = formSettings();
+  const dirty = Object.keys(f).some(k => f[k] !== savedSettings[k]);
+  $('set-save').disabled = !dirty;
+  $('set-reset').disabled = !dirty;
+}
+async function saveSettings(ev) {
+  ev.preventDefault();
+  await guarded($('set-save'), async () => {
+    savedSettings = await api('PUT', '/v1/tenant/config', formSettings());
+    fillSettings(savedSettings);
+    toast(`Saved as version ${savedSettings.version}. Trips use it from their next calculation.`);
+  });
+  markDirty();
+}
+
+// ---------- employee ----------
+async function lookUpAsEmployee(id) {
+  const box = $('emp-result');
+  box.hidden = false;
+  box.innerHTML = '<div class="empty">Looking...</div>';
+  try {
+    const d = await api('GET', `/v1/trips/${encodeURIComponent(id)}/distance`);
+    box.innerHTML = `<div class="result">
+      <div class="head"><span class="chip">${esc(d.tripId)}</span><span class="pill ${statusClass(d.status)}">${d.status}</span></div>
+      <div class="value">${d.billableKm ? d.billableKm + '<small>km</small>' : '-'}</div>
+      <div class="muted">${d.computedAt ? `Computed ${dateTime(d.computedAt)} with rules ${d.ruleVersion}.` : 'Not computed yet. Try again in a few seconds.'}
+        ${d.status === 'DEGRADED' ? ' Part of this trip is still an estimate; it will be corrected automatically.' : ''}</div>
+      <div class="muted" style="font-size:13px">The segment breakdown and billing are for operators and admins.</div></div>`;
+  } catch (e) {
+    box.innerHTML = e.status === 404
+      ? `<div class="result"><b>Not found</b><div class="muted">No trip <span class="chip">${esc(id)}</span> that you rode in. A trip you weren't on looks exactly like one that doesn't exist, on purpose.</div></div>`
+      : `<div class="result"><b>Something went wrong</b><div class="muted">${esc(e.message)}</div></div>`;
+  }
+}
+
+// ---------- small helpers ----------
+function statusClass(s) { return s === 'COMPUTED' ? 'ok' : s === 'DEGRADED' ? 'warn' : s === 'RECEIVED' ? 'info' : ''; }
+function anchorLabel(a) {
+  if (a.kind === 'OFFICE') return 'Office';
+  const what = { EMPLOYEE_PICKUP: 'Pickup', EMPLOYEE_DROP: 'Drop', NO_SHOW: 'No-show' }[a.kind] || a.kind;
+  return `${what} of ${a.employeeRef}`;
+}
+const time = (iso) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const dateTime = (iso) => new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const short = (uuid) => uuid ? String(uuid).slice(0, 8) : '-';
+function ago(iso) {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + ' min ago';
+  if (s < 86400) return Math.floor(s / 3600) + ' hr ago';
+  return dateTime(iso);
 }
 
 let toastTimer;
@@ -472,24 +1292,55 @@ function toast(msg, isErr) {
   t.innerHTML = msg;
   t.className = 'toast show' + (isErr ? ' err' : '');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.className = 'toast', isErr ? 6000 : 3000);
+  toastTimer = setTimeout(() => t.className = 'toast', isErr ? 6000 : 3500);
 }
 function showError(e) {
   const p = e.problem;
-  toast(p ? `${p.title}: ${p.detail || ''}<br><code>${p.code || ''} · trace ${p.traceId || '-'}</code>` : e.message, true);
+  toast(p ? `${esc(p.title)}: ${esc(p.detail || '')}<br><code>${esc(p.code || '')} · trace ${esc(p.traceId || '-')}</code>` : esc(e.message), true);
 }
 
 // ---------- wiring ----------
-$('btn-upload').onclick = uploadTrip;
-$('btn-bill').onclick = billTrip;
-$('btn-late').onclick = sendLatePings;
-$('btn-recompute').onclick = recompute;
-$('btn-provider').onclick = toggleProvider;
-$('tenant').onchange = signIn;
-initMap();
-signIn();
-setInterval(() => { refreshStatus(); }, 3000);
-setInterval(() => { refreshTrips(); if (state.tripId && $('k-status').textContent !== 'COMPUTED') loadTrip(state.tripId).catch(() => {}); }, 6000);
+$('btn-sample').onclick = (e) => uploadTrip(false, e.currentTarget);
+$('btn-badfix').onclick = (e) => uploadTrip(true, e.currentTarget);
+$('d-recompute').onclick = (e) => recomputeTrip(state.tripId, e.currentTarget);
+$('d-bill').onclick = billTrip;
+$('s-toggle').onclick = toggleProvider;
+$('s-recompute-all').onclick = recomputeAll;
+$('search').oninput = (e) => { state.search = e.target.value; renderTripTable(); };
+$('open-form').onsubmit = (e) => { e.preventDefault(); const id = $('open-id').value.trim(); if (id) location.hash = '#/trips/' + encodeURIComponent(id); };
+$('emp-form').onsubmit = (e) => { e.preventDefault(); const id = $('emp-id').value.trim(); if (!id) return;
+  const target = '#/trips/' + encodeURIComponent(id);
+  // same ID twice doesn't fire hashchange, so look it up by hand then
+  if (location.hash === target) lookUpAsEmployee(id); else location.hash = target; };
+$('set-form').onsubmit = saveSettings;
+$('set-form').oninput = markDirty;
+$('f-noshow').onclick = () => { setSwitch(!$('f-noshow').classList.contains('on')); markDirty(); };
+$('set-reset').onclick = () => { if (savedSettings) fillSettings(savedSettings); };
+$('who-tenant').onclick = openSignIn;
+$('who-role').onclick = openSignIn;
+$('signin-form').onsubmit = submitSignIn;
+$('si-roles').querySelectorAll('button').forEach(b => b.onclick = () => pickRole(b.dataset.role));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.token) $('signin').hidden = true; });
+// Grafana runs on port 3000 of whatever machine is serving this page
+document.querySelectorAll('.grafana-link').forEach(a => a.href = `${location.protocol}//${location.hostname}:3000`);
+window.addEventListener('hashchange', route);
+
+// first visit: ask. After that, sign in again quietly with whatever was picked last time.
+(async () => {
+  const saved = store.get('signin');
+  if (saved && saved.tenant && ROLES[saved.role]) {
+    try { await signIn(saved); return; } catch (e) { /* fall through to the form */ }
+  }
+  openSignIn();
+})();
+
+setInterval(() => { if (state.view === 'trips' || state.view === 'system') refreshStatus(); }, 3000);
+setInterval(() => {
+  if (state.view === 'trips') refreshTrips();
+  else if (state.view === 'system') refreshSystem();
+  // keep an open trip fresh while it's still moving (queued, or waiting for the map service to come back)
+  else if (state.view === 'detail' && state.detail && state.detail.dist.status !== 'COMPUTED') loadTrip(state.tripId).catch(() => {});
+}, 6000);
 </script>
 </body>
 </html>
